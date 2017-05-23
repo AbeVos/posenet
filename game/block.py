@@ -33,6 +33,16 @@ class Block(Actor):
         self.type = type
         
         self.target_position = self.get_position()
+    
+    def type_increase(self, n):
+        self.type += n
+        
+        if self.type > 3:
+            self.type = 1
+        elif self.type < 1:
+            self.type = 3
+        
+        self.text.set_text(str(self.type), game.fonts['screen_large'])
 
 class CursorBlock(Block):
     def __init__(self, value):
@@ -63,9 +73,10 @@ class CursorBlock(Block):
         self.letter_text.set_position((0.5 * block_size, 0.5 * block_size))
 
 class Cursor(Actor):
-    def __init__(self, position):
+    def __init__(self, position, offset=5):
         super(Cursor, self).__init__(position)
         
+        self.offset = offset
         self.blocks = [CursorBlock(1), CursorBlock(1)]
         
         self.set_surface(block_size * len(self.blocks), 2 * block_size)
@@ -88,6 +99,13 @@ class Cursor(Actor):
             block.draw(self.surface)
         
         surface.blit(self.surface, self.rect)
+        
+    def key_down(self, key):
+        for index, block in enumerate(self.blocks):
+            if key is ord(block.letter):
+                ## Reset cursor letters
+                return index
+        return -1
     
     def assign_block_positions(self):
         for index, block in enumerate(self.blocks):
@@ -99,7 +117,9 @@ class BlockLine(Actor):
     def __init__(self, position):
         super(BlockLine, self).__init__(position)
         
-        self.cursor = Cursor((5 * block_size, block_size))
+        self.offset = 5
+        
+        self.cursor = Cursor((self.offset * block_size, block_size), self.offset)
         self.blocks = [Block(type=randint(1,3)) for i in range(10)]
         
         self.set_surface(block_size * len(self.blocks), 3 * block_size)
@@ -136,10 +156,23 @@ class BlockLine(Actor):
             block.set_position((block_size / 2 + block_size * index, 2 * block_size))
     
     def key_down(self, key):
-        pass
+        index = self.cursor.key_down(key)
+        print(index)
+        
+        if index >= 0:
+            self.blocks[index + self.offset - 1].type_increase(1)
+            self.remove_block(0)
+
+    def find_groups(self):
+        return 0
 
     def remove_block(self, index):
         self.blocks[index] = None
+    
+    def update_position(self):
+        for index, block in enumerate(self.blocks):
+            if block is None:
+                pass
 
 '''
 class BlockField(Actor):
