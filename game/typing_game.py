@@ -12,6 +12,7 @@ import pygame.locals as local
 import game_manager as game
 from game_manager import State
 from block import BlockLine
+from text import Score
 
 class Tutorial(State):
     def __init__(self):
@@ -20,7 +21,7 @@ class Tutorial(State):
         self.background = pg.Color(20, 80, 20)
         self.title.set_text("Doe iets geks met je hand en misschien gebeuren er dingen", game.fonts['title'])
         self.title.set_position((screen.get_width() / 2, 200))
-        
+
     def update(self, delta):
         super(Tutorial, self).update(delta)
         
@@ -28,7 +29,7 @@ class Tutorial(State):
     
     def draw(self):
         super(Tutorial, self).draw()
-    
+     
     def key_down(self, key):
         game.set_state('level')
  
@@ -39,12 +40,16 @@ class Level(State):
         self.background = pg.Color(10, 20, 5)
         
         self.block_line = BlockLine((screen.get_width() / 2, screen.get_height() / 2))
+        
+        self.score = Score((500, screen.get_width() / 8))
     
     def update(self, delta):
         self.block_line.update(delta)
+        self.score.update(delta)
     
     def draw(self):
         self.block_line.draw(screen)
+        self.score.draw(screen)
     
     def key_down(self, key):
         self.block_line.key_down(key)
@@ -53,8 +58,8 @@ screen_size = (1920, 1080)
 screen = game.create_screen(screen_size, "Gebarentaal")
 
 game_states = {
-        'tutorial': Tutorial(),
-        'level': Level()
+        'tutorial': Tutorial,
+        'level': Level
         }
 
 game.all_states = game_states

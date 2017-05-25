@@ -33,6 +33,28 @@ class Block(Actor):
         self.type = type
         
         self.target_position = self.get_position()
+        self.is_destroyed = False
+    
+    def update(self, delta):
+        super(Block, self).update(delta)
+        
+        if not self.at_target:
+            self.position = util.lerp(self.position, self.target_position, self.time)
+            self.time += delta
+            
+            if self.time >= 1:
+                self.at_target = True
+        elif self.is_destroyed:
+            self.position[1] += delta * block_size
+            
+            self.time += delta
+            
+            if self.time >= 1:
+                self.is_active = False
+        
+    def set_target(self, position):
+        super(Block, self).set_target(position)
+        self.time = 0
     
     def type_increase(self, n):
         self.type += n
@@ -43,6 +65,10 @@ class Block(Actor):
             self.type = 3
         
         self.text.set_text(str(self.type), game.fonts['screen_large'])
+        
+    def destroy(self):
+        self.is_destroyed = True
+        self.time = 0
 
 class CursorBlock(Block):
     def __init__(self, value):
@@ -52,7 +78,6 @@ class CursorBlock(Block):
         
         self.letter_text = Line((0,0), '', game.fonts['screen_large'])
         self.letter_text.set_color(pg.Color(50,240,0))
-        self.set_letter()
         
         if value < 0:
             action_text = '-%i'%value
@@ -65,9 +90,11 @@ class CursorBlock(Block):
         
         self.children.append(self.letter_text)
         self.children.append(self.action_text)
+        
+        self.is_destroyed = False
 
-    def set_letter(self):
-        self.letter = random.choice(game.letters)
+    def set_letter(self, letter):
+        self.letter = letter
         
         self.letter_text.set_text(self.letter, game.fonts['screen_large'])
         self.letter_text.set_position((0.5 * block_size, 0.5 * block_size))
@@ -78,6 +105,7 @@ class Cursor(Actor):
         
         self.offset = offset
         self.blocks = [CursorBlock(1), CursorBlock(1)]
+        self.set_letters()
         
         self.set_surface(block_size * len(self.blocks), 2 * block_size)
         self.set_position(position)
@@ -103,9 +131,14 @@ class Cursor(Actor):
     def key_down(self, key):
         for index, block in enumerate(self.blocks):
             if key is ord(block.letter):
-                ## Reset cursor letters
+                self.set_letters()
                 return index
         return -1
+    
+    def set_letters(self):
+        letters = random.sample(game.letters, k=len(self.blocks))
+        for i in range(len(self.blocks)):
+            self.blocks[i].set_letter(letters[i])
     
     def assign_block_positions(self):
         for index, block in enumerate(self.blocks):
@@ -130,10 +163,18 @@ class BlockLine(Actor):
     def update(self, delta):
         super(BlockLine, self).update(self)
         
-        for block in self.blocks:
+        for index, block in enumerate(self.blocks):
             if block is None: continue
             
             block.update(delta)
+            
+            if not block.is_active:
+                self.remove_block(index)
+           
+        for block in self.blocks:
+            if block is None:
+                self.collapse()
+                continue
         
         self.cursor.update(delta)
     
@@ -155,19 +196,52 @@ class BlockLine(Actor):
             
             block.set_position((block_size / 2 + block_size * index, 2 * block_size))
     
+    def assign_block_targets(self):
+        for index, block in enumerate(self.blocks):
+            if block is None: continue
+            
+            block.set_target((block_size / 2 + block_size * index, 2 * block_size))
+    
     def key_down(self, key):
         index = self.cursor.key_down(key)
-        print(index)
         
         if index >= 0:
             self.blocks[index + self.offset - 1].type_increase(1)
+            self.find_groups()
             self.remove_block(0)
+            
+        self.collapse()
 
     def find_groups(self):
-        return 0
+        count = 0
+        
+        for i in range(len(self.blocks) - 1):
+            if self.blocks[i].type is self.blocks[i+1].type and not self.blocks[i] is None:
+                count += 1
+            else:
+                if count >= 2:
+                    print("group found: %i"%(count+1))
+                    for j in range(count+1):
+                        self.blocks[i-j].destroy()
+                    
+                    game.score += 10 * count**2
+                    
+                count = 0
 
     def remove_block(self, index):
         self.blocks[index] = None
+    
+    def collapse(self):
+        while None in self.blocks:
+            for index, block in enumerate(self.blocks):
+                if block is None:
+                    self.blocks.pop(index)
+                    
+                    new_block = Block(type=randint(1,3))
+                    new_block.set_position((block_size / 2 + block_size * (len(self.blocks) + 1), 2 * block_size))
+                    self.blocks.append(new_block)
+        
+        self.assign_block_targets()
     
     def update_position(self):
         for index, block in enumerate(self.blocks):

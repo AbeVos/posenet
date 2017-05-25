@@ -69,11 +69,11 @@ class PoseNet(nn.Module):
 
 dtype = torch.cuda.FloatTensor
 
-layers = [PoolAE(3, 20, 7, stride=3, padding=6),
-          PoolAE(20, 40, 5),
-          PoolAE(40, 60, 3),
-          AE(60, 80, 1),
+layers = [PoolAE(3, 40, 7, stride=3, padding=6),
+          PoolAE(40, 60, 5),
+          PoolAE(60, 80, 3),
           AE(80, 100, 1),
+          AE(100, 100, 1),
           AE(100, 26, 1)]
 
 voc_data = np.load('data/pretrain_data.npy')
@@ -204,7 +204,7 @@ params = list(layers[0].parameters())[0].data.cpu().numpy().transpose(0,2,3,1)
 params = (params - params.min()) / (params.max() - params.min())
 
 plt.figure(2)
-for i in range(20):
-    plt.subplot(4,5,i+1)
+for i in range(40):
+    plt.subplot(8,5,i+1)
     plt.imshow(params[i])
     plt.axis('off')

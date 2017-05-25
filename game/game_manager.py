@@ -13,6 +13,8 @@ pg.init()
 
 screen = None
 
+score = 0
+
 fonts = {
         'title': pg.font.Font('resources/fonts/FreeSans.ttf', 64),
         'screen_large': pg.font.Font('resources/fonts/Renegade Master.ttf', 64),
@@ -85,5 +87,5 @@ def stop():
 def set_state(new_state):
     global state
     
-    state = all_states[new_state]
+    state = all_states[new_state]()
     state.reset()

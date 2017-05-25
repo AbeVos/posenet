@@ -66,6 +66,7 @@ class Actor(object):
     
     def set_position(self, position):
         self.position = np.array(position)
+        self.target_position = self.position
         
         #for child in self.children:
         #    child.set_position(position)
