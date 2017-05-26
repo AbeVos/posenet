@@ -22,14 +22,14 @@ class AE(nn.Module):
         self.decoder = nn.ConvTranspose2d(out_features, in_features, kernel, stride=stride, padding=padding)
     
     def forward(self, x):
-        x = F.relu(self.encoder(x))
+        x = self.encoder(x)
         x = F.dropout(x, training=self.training)
         x = self.decoder(x)
         
         return x
     
     def encode(self, x):
-        x = F.relu(self.encoder(x))
+        x = F.leaky_relu(self.encoder(x))
         return x
     
     def decode(self, x):
@@ -99,7 +99,7 @@ for index, layer in enumerate(layers):
     layer.cuda()
     layer.train()
     
-    optimizer = torch.optim.SGD(layer.parameters(), 0.01, 0.9)
+    optimizer = torch.optim.RMSprop(layer.parameters(), lr=0.0001, momentum=0.3)
     criterion = torch.nn.MSELoss()
     
     training_loss = []
@@ -171,7 +171,7 @@ learning_graphs.append(np.array(training_loss))
 
 plt.figure(0)
 for index, graph in enumerate(learning_graphs):
-    plt.subplot(1, 1, 1)
+    plt.subplot(2, 4, index+1)
     plt.plot(graph)
 
 X = torch.from_numpy(data_cv.transpose(0,3,1,2)).type(dtype)
