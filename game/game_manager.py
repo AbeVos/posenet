@@ -84,7 +84,7 @@ def stop():
     running = False
     
 def set_global_state(new_state):
-    global global_state, game_state_changed
+    global global_state
     
     del global_state
     global_state = global_states[new_state]()
@@ -92,9 +92,9 @@ def set_global_state(new_state):
     #state.reset()
     
 def set_game_state(new_state):
-    global current_game_state
+    global current_game_state, game_state_changed
     
-    print(new_state, current_game_state)
+    #print(new_state, current_game_state)
     
     previous_game_state = current_game_state
     current_game_state = new_state

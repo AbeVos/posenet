@@ -28,8 +28,10 @@ class Actor(object):
         
         self.at_target = True
         
+        self.time = 0
+        
         game.game_state_changed.subscribe(self.game_state_changed)
-     
+        
     def __del__(self):
         game.game_state_changed.unsubscribe(self.game_state_changed)
         
@@ -56,7 +58,7 @@ class Actor(object):
         surface.blit(self.surface, self.rect)
     
     def game_state_changed(self, prev_state, new_state):
-        pass
+        self.time = 0
     
     def set_image(self, image):
         self.image = image

@@ -16,10 +16,8 @@ class Event():
     
     def subscribe(self, callback):
         if not callback in self.listeners:
-            print("Add new listener %s"%callback)
             self.listeners.append(callback)
     
     def unsubscribe(self, callback):
         if callback in self.listeners:
-            print("Delete listener")
             self.listeners.remove(callback)
