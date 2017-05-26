@@ -8,6 +8,7 @@ Created on Mon May 15 11:23:11 2017
 
 import pygame as pg
 from text import Line
+from event import Event
 
 pg.init()
 
@@ -22,13 +23,7 @@ fonts = {
         }
 
 images = {
-        'player' : pg.image.load('resources/images/player.png'),
-        'coin': pg.image.load('resources/images/coin.png'),
-        'block_white': pg.image.load('resources/images/block_white.png'),
-        'block_red': pg.image.load('resources/images/block_red.png'),
         'block_blue': pg.image.load('resources/images/block_blue.png'),
-        'block_green': pg.image.load('resources/images/block_green.png'),
-        'block_grey': pg.image.load('resources/images/block_grey.png'),
         'cursor_block': pg.image.load('resources/images/cursor_block.png')
         }
 
@@ -53,8 +48,12 @@ class State():
 
 running = False
 
-all_states = None
-state = None
+global_state = None
+global_states = None
+current_global_state = None
+
+game_state_changed = Event()
+current_game_state = 'input'
      
 def create_screen(size, caption=""):
     """
@@ -84,8 +83,20 @@ def stop():
     pg.quit()
     running = False
     
-def set_state(new_state):
-    global state
+def set_global_state(new_state):
+    global global_state, game_state_changed
     
-    state = all_states[new_state]()
-    state.reset()
+    del global_state
+    global_state = global_states[new_state]()
+    game_state_changed = Event()
+    #state.reset()
+    
+def set_game_state(new_state):
+    global current_game_state
+    
+    print(new_state, current_game_state)
+    
+    previous_game_state = current_game_state
+    current_game_state = new_state
+    
+    game_state_changed(previous_game_state, current_game_state)

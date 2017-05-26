@@ -13,7 +13,7 @@ import pygame as pg
 import numpy as np
 
 import game_manager as game
-from actor import Actor, Player
+from actor import Actor
 from text import Line
 import util
 
@@ -147,6 +147,7 @@ class Cursor(Actor):
             block.set_position((block_size / 2 + block_size * index, block_size))
 
 class BlockLine(Actor):
+    '''Game object containing and managing Blocks and the Cursor.'''
     def __init__(self, position):
         super(BlockLine, self).__init__(position)
         
@@ -163,20 +164,23 @@ class BlockLine(Actor):
     def update(self, delta):
         super(BlockLine, self).update(self)
         
-        for index, block in enumerate(self.blocks):
-            if block is None: continue
+        if game.current_game_state is 'input':
+            for index, block in enumerate(self.blocks):
+                if block is None: continue
             
-            block.update(delta)
+                block.update(delta)
             
             if not block.is_active:
                 self.remove_block(index)
-           
+                
+            self.cursor.update(delta)
+        
+        '''
         for block in self.blocks:
             if block is None:
                 self.collapse()
                 continue
-        
-        self.cursor.update(delta)
+        '''
     
     def draw(self, surface):
         self.surface.fill(pg.Color(0,0,0,0))
@@ -189,6 +193,10 @@ class BlockLine(Actor):
         self.cursor.draw(self.surface)
         
         surface.blit(self.surface, self.rect)
+    
+    def game_state_changed(self, prev_state, new_state):
+        super(BlockLine, self).game_state_changed(prev_state, new_state)
+        print(prev_state, new_state)
     
     def assign_block_positions(self):
         for index, block in enumerate(self.blocks):
@@ -203,14 +211,17 @@ class BlockLine(Actor):
             block.set_target((block_size / 2 + block_size * index, 2 * block_size))
     
     def key_down(self, key):
-        index = self.cursor.key_down(key)
-        
-        if index >= 0:
-            self.blocks[index + self.offset - 1].type_increase(1)
-            self.find_groups()
-            self.remove_block(0)
+        if game.current_game_state is 'input':
+            index = self.cursor.key_down(key)
             
-        self.collapse()
+            if index >= 0:
+                self.blocks[index + self.offset - 1].type_increase(1)
+                #self.find_groups()
+                print("Change game state")
+                game.set_game_state('find_groups')
+                #self.remove_block(0)
+                
+            #self.collapse()
 
     def find_groups(self):
         count = 0

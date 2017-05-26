@@ -27,7 +27,12 @@ class Actor(object):
         self.target_position = self.position
         
         self.at_target = True
+        
+        game.game_state_changed.subscribe(self.game_state_changed)
      
+    def __del__(self):
+        game.game_state_changed.unsubscribe(self.game_state_changed)
+        
     def update(self, delta):
         if not self.is_active: return
         
@@ -50,6 +55,9 @@ class Actor(object):
         
         surface.blit(self.surface, self.rect)
     
+    def game_state_changed(self, prev_state, new_state):
+        pass
+    
     def set_image(self, image):
         self.image = image
         self.image_rect = self.image.get_rect()
@@ -68,21 +76,6 @@ class Actor(object):
         self.position = np.array(position)
         self.target_position = self.position
         
-        #for child in self.children:
-        #    child.set_position(position)
-    
-    def set_x(self, x):
-        self.position[0] = x
-        
-        #for child in self.children:
-        #    child.set_x(x)
-            
-    def set_y(self, y):
-        self.position[1] = y
-        
-        #for child in self.children:
-        #    child.set_y(y)
-        
     def get_position(self):
         return self.position
     
@@ -99,21 +92,3 @@ class Actor(object):
     def reach_target(self):
         self.set_position(self.target_position)
         self.at_target = True
-
-class Player(Actor):
-    def __init__(self):
-        super(Player, self).__init__((0,0))
-        
-        self.set_surface(game.images['player'])
-        
-        self.type = ''
-        self.target_position = self.get_position()
-        
-        self.gravity = True
-        
-    def update(self, delta):
-        super(Player, self).update(delta)
-        
-        self.set_position(util.lerp(self.get_position(),
-                                    self.target_position,
-                                    10 * delta))
