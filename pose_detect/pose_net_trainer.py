@@ -60,64 +60,148 @@ class PoolAE(AE):
         x = self.decoder(self.unpool(x, self.index))
         return x
 
-class PoseNet(nn.Module):
+class DeepAE(nn.Module):
     def __init__(self, layers):
+        super(DeepAE, self).__init__()
+        
+        self.conv1 = layers[0].encoder
+        self.pool1 = layers[0].pool
+        
+        self.conv2 = layers[1].encoder
+        self.pool2 = layers[1].pool
+        
+        self.conv3 = layers[2].encoder
+        self.pool3 = layers[2].pool
+        
+        self.fc1 = layers[3].encoder
+        self.fc2 = layers[4].encoder
+        self.fc3 = layers[5].encoder
+        
+        self.t_fc3 = layers[5].decoder
+        self.t_fc2 = layers[4].decoder
+        self.t_fc1 = layers[3].decoder
+        
+        self.unpool3 = layers[2].unpool
+        self.t_conv3 = layers[2].decoder
+        
+        self.unpool2 = layers[1].unpool
+        self.t_conv2 = layers[1].decoder
+        
+        self.unpool1 = layers[0].unpool
+        self.t_conv1 = layers[0].decoder\
+        
+    def forward(self, x):
+        x, index1 = self.pool1(F.leaky_relu(self.conv1(x)))
+        x, index2 = self.pool2(F.leaky_relu(self.conv2(x)))
+        x, index3 = self.pool3(F.leaky_relu(self.conv3(x)))
+        
+        x = F.leaky_relu(self.fc1(x))
+        x = F.leaky_relu(self.fc2(x))
+        x = F.leaky_relu(self.fc3(x))
+        
+        x = self.t_fc3(x)
+        x = self.t_fc2(x)
+        x = self.t_fc1(x)
+        
+        x = self.t_conv3(self.unpool3(x, index3))
+        x = self.t_conv2(self.unpool2(x, index2))
+        x = self.t_conv1(self.unpool1(x, index1))
+        
+        return x
+        
+
+class PoseNet(nn.Module):
+    def __init__(self, deep_net):
         super(PoseNet, self).__init__()
         
-        for layer in layers:
-            pass
+        self.conv1 = deep_net.conv1
+        self.pool1 = deep_net.pool1
+        
+        self.conv2 = deep_net.conv2
+        self.pool2 = deep_net.pool2
+        
+        self.conv3 = deep_net.conv3
+        self.pool3 = deep_net.pool3
+        
+        self.fc1 = deep_net.fc1
+        self.fc2 = deep_net.fc2
+        self.fc3 = deep_net.fc3
+                
+    def forward(self, x):
+        x, _ = self.pool1(F.leaky_relu(self.conv1(x)))
+        x, _ = self.pool2(F.leaky_relu(self.conv2(x)))
+        x, _ = self.pool3(F.leaky_relu(self.conv3(x)))
+        
+        x = F.leaky_relu(self.fc1(x))
+        x = F.leaky_relu(self.fc2(x))
+        x = F.leaky_relu(self.fc3(x))
+        
+        return x
 
-dtype = torch.cuda.FloatTensor
+def pretrain_layers(layers, epochs, data):
+    learning_graphs = []
 
-layers = [PoolAE(3, 40, 7, stride=3, padding=6),
-          PoolAE(40, 60, 5),
-          PoolAE(60, 80, 3),
-          AE(80, 100, 1),
-          AE(100, 100, 1),
-          AE(100, 26, 1)]
-
-voc_data = np.load('data/pretrain_data.npy')
-pose_data = np.load('data/pose_data.npy')
-google_data = np.load('data/google_data.npy')
-
-data = np.concatenate((voc_data, pose_data, google_data))
-data = np.concatenate((data, np.flip(data, 2)))
-data /= 255
-np.random.shuffle(data)
-
-data_cv = data[-10:]
-data = data[:-10]
-print(data.shape)
-
-epochs = 10
-
-learning_graphs = []
-
-for index, layer in enumerate(layers):
-    print("Training layer %i"%(index+1))
+    for index, layer in enumerate(layers):
+        print("Train layer %i"%(index+1))
+        
+        layer.cuda()
+        layer.train()
+        
+        optimizer = torch.optim.RMSprop(layer.parameters(), lr=0.0001, momentum=0.3)
+        criterion = torch.nn.MSELoss()
+        
+        training_loss = []
     
-    layer.cuda()
-    layer.train()
-    
-    optimizer = torch.optim.RMSprop(layer.parameters(), lr=0.0001, momentum=0.3)
-    criterion = torch.nn.MSELoss()
-    
+        for epoch in range(epochs):
+            total_loss = 0
+            
+            for datum in data:
+                X = torch.from_numpy(datum.transpose(2,0,1)).unsqueeze(0).type(dtype)
+                X = Variable(X, requires_grad=False)
+            
+                for i in range(index):
+                    X = layers[i].encode(X)
+                    X = Variable(X.data, requires_grad=False)
+            
+                corruption = Variable(torch.randn(X.size()).type(dtype), requires_grad=False)
+                
+                y = layer(X + 0.1 * corruption)
+                
+                loss = criterion(y, X)
+                loss.backward()
+                
+                optimizer.step()
+                optimizer.zero_grad()
+                
+                total_loss += loss.data[0]
+            
+            total_loss /= len(data)
+            print("Epoch %i | Training loss: %f"%(epoch+1, total_loss))
+            
+            training_loss.append(total_loss)
+        
+        learning_graphs.append(np.array(training_loss))
+        
+    return learning_graphs
+
+def finetune(deep_net, epochs, data):
     training_loss = []
+    
+    optimizer = torch.optim.RMSprop(deep_net.parameters(), lr=0.0001, momentum=0.3)
+    criterion = torch.nn.MSELoss()
 
+    print("Finetune deep AE")
     for epoch in range(epochs):
+        
         total_loss = 0
         
         for datum in data:
             X = torch.from_numpy(datum.transpose(2,0,1)).unsqueeze(0).type(dtype)
             X = Variable(X, requires_grad=False)
-        
-            for i in range(index):
-                X = layers[i].encode(X)
-                X = Variable(X.data, requires_grad=False)
-        
-            corruption = Variable(torch.randn(X.size()).type(dtype), requires_grad=False)
             
-            y = layer(X + 0.1 * corruption)
+            corruption = Variable(torch.randn(X.size()).type(dtype), requires_grad=False)
+            h = X + 0.1 * corruption
+            y = deep_net(h)
             
             loss = criterion(y, X)
             loss.backward()
@@ -132,40 +216,38 @@ for index, layer in enumerate(layers):
         
         training_loss.append(total_loss)
     
-    learning_graphs.append(np.array(training_loss))
+    return training_loss
 
-training_loss = []
+dtype = torch.cuda.FloatTensor
 
-print("Finetune deep AE")
-for epoch in range(epochs):
-    
-    total_loss = 0
-    
-    for datum in data:
-        X = torch.from_numpy(datum.transpose(2,0,1)).unsqueeze(0).type(dtype)
-        X = Variable(X, requires_grad=False)
-        
-        corruption = Variable(torch.randn(X.size()).type(dtype), requires_grad=False)
-        h = X + 0.1 * corruption
-        for layer in layers:
-            h = layer.encode(h)
-        
-        for layer in reversed(layers):
-            h = layer.decode(h)
-        y = h
-        
-        loss = criterion(y, X)
-        loss.backward()
-        
-        optimizer.step()
-        optimizer.zero_grad()
-        
-        total_loss += loss.data[0]
-    
-    total_loss /= len(data)
-    print("Epoch %i | Training loss: %f"%(epoch, total_loss))
-    
-    training_loss.append(total_loss)
+layers = [PoolAE(3, 40, 7, stride=3, padding=6),
+          PoolAE(40, 80, 5),
+          PoolAE(80, 160, 3),
+          AE(160, 256, 1),
+          AE(256, 256, 1),
+          AE(256, 26, 1)]
+
+voc_data = np.load('data/pretrain_data.npy') / 255
+pose_data = np.load('data/pose_data.npy')
+google_data = np.load('data/google_data.npy') / 255
+
+data = np.concatenate((voc_data, pose_data, google_data))
+data = np.concatenate((data, np.flip(data, 2)))
+np.random.shuffle(data)
+
+data_cv = data[-10:]
+data = data[:-10]
+print(data.shape)
+
+epochs = 20
+
+learning_graphs = pretrain_layers(layers, epochs, data)
+
+deep_net = DeepAE(layers)
+deep_net.cuda()
+deep_net.train()
+
+training_loss = finetune(deep_net, epochs, data)
 
 learning_graphs.append(np.array(training_loss))
 
@@ -208,3 +290,8 @@ for i in range(40):
     plt.subplot(8,5,i+1)
     plt.imshow(params[i])
     plt.axis('off')
+    
+posenet = PoseNet(deep_net)
+print(posenet)
+
+torch.save(posenet, 'models/posenet_00.model')
