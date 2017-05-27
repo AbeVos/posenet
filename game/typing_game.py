@@ -31,7 +31,7 @@ class Tutorial(State):
         super(Tutorial, self).draw()
      
     def key_down(self, key):
-        game.set_state('level')
+        game.set_global_state('level')
  
 class Level(State):
     def __init__(self):
@@ -42,6 +42,10 @@ class Level(State):
         self.block_line = BlockLine((screen.get_width() / 2, screen.get_height() / 2))
         
         self.score = Score((500, screen.get_width() / 8))
+    
+    def __del__(self):
+        del self.block_line
+        del self.score
     
     def update(self, delta):
         self.block_line.update(delta)
@@ -62,16 +66,16 @@ game_states = {
         'level': Level
         }
 
-game.all_states = game_states
-game.set_state('tutorial')
+game.global_states = game_states
+game.set_global_state('tutorial')
 
 while game.running: 
     delta = game.update()
     
-    screen.fill(game.state.background)
+    screen.fill(game.global_state.background)
     
-    game.state.update(delta)
-    game.state.draw()
+    game.global_state.update(delta)
+    game.global_state.draw()
     
     for event in pg.event.get():
         if event.type == local.QUIT:
@@ -82,4 +86,7 @@ while game.running:
             if event.key == local.K_ESCAPE:
                 pg.event.post(pg.event.Event(local.QUIT))
             else:
-                game.state.key_down(event.key)
+                game.global_state.key_down(event.key)
+            
+            if event.key == ord('q'):
+                game.set_global_state('tutorial')

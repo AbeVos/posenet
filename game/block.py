@@ -13,7 +13,7 @@ import pygame as pg
 import numpy as np
 
 import game_manager as game
-from actor import Actor, Player
+from actor import Actor
 from text import Line
 import util
 
@@ -44,6 +44,7 @@ class Block(Actor):
             
             if self.time >= 1:
                 self.at_target = True
+                
         elif self.is_destroyed:
             self.position[1] += delta * block_size
             
@@ -51,6 +52,7 @@ class Block(Actor):
             
             if self.time >= 1:
                 self.is_active = False
+                self.is_destroyed = False
         
     def set_target(self, position):
         super(Block, self).set_target(position)
@@ -147,6 +149,7 @@ class Cursor(Actor):
             block.set_position((block_size / 2 + block_size * index, block_size))
 
 class BlockLine(Actor):
+    '''Game object containing and managing Blocks and the Cursor.'''
     def __init__(self, position):
         super(BlockLine, self).__init__(position)
         
@@ -165,18 +168,28 @@ class BlockLine(Actor):
         
         for index, block in enumerate(self.blocks):
             if block is None: continue
-            
+        
             block.update(delta)
-            
+        
             if not block.is_active:
                 self.remove_block(index)
-           
-        for block in self.blocks:
-            if block is None:
-                self.collapse()
-                continue
-        
+            
         self.cursor.update(delta)
+            
+        if game.current_game_state is 'input':
+            for block in self.blocks:
+                if block is None:
+                    self.collapse()
+                    continue
+        elif game.current_game_state is 'find_groups':
+            if self.time > 1:
+                print("Find groups")
+                if self.find_groups():
+                    self.time = 0
+                else:
+                    game.set_game_state('input')
+        
+        self.time += delta
     
     def draw(self, surface):
         self.surface.fill(pg.Color(0,0,0,0))
@@ -189,6 +202,14 @@ class BlockLine(Actor):
         self.cursor.draw(self.surface)
         
         surface.blit(self.surface, self.rect)
+    
+    def game_state_changed(self, prev_state, new_state):
+        super(BlockLine, self).game_state_changed(prev_state, new_state)
+        
+        print("Change game state from %s to %s"%(prev_state, new_state))
+        
+        if new_state is 'find_groups' and not self.find_groups():
+            game.set_game_state('input')
     
     def assign_block_positions(self):
         for index, block in enumerate(self.blocks):
@@ -203,20 +224,20 @@ class BlockLine(Actor):
             block.set_target((block_size / 2 + block_size * index, 2 * block_size))
     
     def key_down(self, key):
-        index = self.cursor.key_down(key)
-        
-        if index >= 0:
-            self.blocks[index + self.offset - 1].type_increase(1)
-            self.find_groups()
-            self.remove_block(0)
+        if game.current_game_state is 'input':
+            index = self.cursor.key_down(key)
             
-        self.collapse()
+            if index >= 0:
+                self.blocks[index + self.offset - 1].type_increase(1)
+                self.remove_block(0)
+                game.set_game_state('find_groups')
 
     def find_groups(self):
         count = 0
         
         for i in range(len(self.blocks) - 1):
-            if self.blocks[i].type is self.blocks[i+1].type and not self.blocks[i] is None:
+            if (not self.blocks[i] is None and not self.blocks[i+1] is None and
+                self.blocks[i].type is self.blocks[i+1].type and not self.blocks[i].is_destroyed):
                 count += 1
             else:
                 if count >= 2:
@@ -226,9 +247,14 @@ class BlockLine(Actor):
                     
                     game.score += 10 * count**2
                     
+                    return True
+                    
                 count = 0
+        
+        return False
 
     def remove_block(self, index):
+        print("Remove block")
         self.blocks[index] = None
     
     def collapse(self):
