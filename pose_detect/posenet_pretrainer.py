@@ -14,6 +14,10 @@ from torch.autograd import Variable
 import numpy as np
 import matplotlib.pyplot as plt
 
+from posenet import PoseNet
+
+dtype = torch.cuda.FloatTensor
+
 class AE(nn.Module):
     def __init__(self, in_features, out_features, kernel, stride=1, padding=0):
         super(AE, self).__init__()
@@ -108,35 +112,6 @@ class DeepAE(nn.Module):
         x = self.t_conv1(self.unpool1(x, index1))
         
         return x
-        
-
-class PoseNet(nn.Module):
-    def __init__(self, deep_net):
-        super(PoseNet, self).__init__()
-        
-        self.conv1 = deep_net.conv1
-        self.pool1 = deep_net.pool1
-        
-        self.conv2 = deep_net.conv2
-        self.pool2 = deep_net.pool2
-        
-        self.conv3 = deep_net.conv3
-        self.pool3 = deep_net.pool3
-        
-        self.fc1 = deep_net.fc1
-        self.fc2 = deep_net.fc2
-        self.fc3 = deep_net.fc3
-                
-    def forward(self, x):
-        x, _ = self.pool1(F.leaky_relu(self.conv1(x)))
-        x, _ = self.pool2(F.leaky_relu(self.conv2(x)))
-        x, _ = self.pool3(F.leaky_relu(self.conv3(x)))
-        
-        x = F.leaky_relu(self.fc1(x))
-        x = F.leaky_relu(self.fc2(x))
-        x = F.leaky_relu(self.fc3(x))
-        
-        return x
 
 def pretrain_layers(layers, epochs, data):
     learning_graphs = []
@@ -218,80 +193,96 @@ def finetune(deep_net, epochs, data):
     
     return training_loss
 
-dtype = torch.cuda.FloatTensor
-
-layers = [PoolAE(3, 40, 7, stride=3, padding=6),
-          PoolAE(40, 80, 5),
-          PoolAE(80, 160, 3),
-          AE(160, 256, 1),
-          AE(256, 256, 1),
-          AE(256, 26, 1)]
-
-voc_data = np.load('data/pretrain_data.npy') / 255
-pose_data = np.load('data/pose_data.npy')
-google_data = np.load('data/google_data.npy') / 255
-
-data = np.concatenate((voc_data, pose_data, google_data))
-data = np.concatenate((data, np.flip(data, 2)))
-np.random.shuffle(data)
-
-data_cv = data[-10:]
-data = data[:-10]
-print(data.shape)
-
-epochs = 20
-
-learning_graphs = pretrain_layers(layers, epochs, data)
-
-deep_net = DeepAE(layers)
-deep_net.cuda()
-deep_net.train()
-
-training_loss = finetune(deep_net, epochs, data)
-
-learning_graphs.append(np.array(training_loss))
-
-plt.figure(0)
-for index, graph in enumerate(learning_graphs):
-    plt.subplot(2, 4, index+1)
-    plt.plot(graph)
-
-X = torch.from_numpy(data_cv.transpose(0,3,1,2)).type(dtype)
-X = Variable(X, requires_grad=False)
-print(X.size())
-
-h = X
-for layer in layers:
-    h = layer.encode(h)
+def train():
+    layers = [PoolAE(3, 40, 7, stride=3, padding=6),
+              PoolAE(40, 80, 5),
+              PoolAE(80, 160, 3),
+              AE(160, 256, 1),
+              AE(256, 256, 1),
+              AE(256, 27, 1)]
     
-print(h.size()) 
-
-for layer in reversed(layers):
-    h = layer.decode(h)
-
-y = h.data.cpu().numpy().transpose(0,2,3,1)
-X = X.data.cpu().numpy().transpose(0,2,3,1)
-
-plt.figure(1)
-for i in range(10):
-    plt.subplot(2,10,i+1)
-    plt.imshow(X[i])
-    plt.axis('off')
+    voc_data = np.load('data/pretrain_data.npy')
+    pose_data = np.load('data/pose_data.npy')
+    google_data = np.load('data/google_data.npy')
     
-    plt.subplot(2,10,i+1+10)
-    plt.imshow((y[i] - y[i].min()) / (y[i].max() - y[i].min()))
-    plt.axis('off')
+    data = np.concatenate((voc_data, pose_data, google_data)) / 255
+    data = np.concatenate((data, np.flip(data, 2)))
+    np.random.shuffle(data)
     
-params = list(layers[0].parameters())[0].data.cpu().numpy().transpose(0,2,3,1)
-params = (params - params.min()) / (params.max() - params.min())
-
-plt.figure(2)
-for i in range(40):
-    plt.subplot(8,5,i+1)
-    plt.imshow(params[i])
-    plt.axis('off')
+    data_cv = data[-10:]
+    data = data[:-10]
+    print(data.shape)
     
-posenet = PoseNet(deep_net)
-print(posenet)
+    epochs = 5
+    
+    learning_graphs = pretrain_layers(layers, epochs, data)
+    
+    deep_net = DeepAE(layers)
+    deep_net.cuda()
+    deep_net.train()
+    
+    training_loss = finetune(deep_net, 30, data)
+    
+    learning_graphs.append(np.array(training_loss))
+    
+    plt.figure(0)
+    for index, graph in enumerate(learning_graphs):
+        plt.subplot(2, 4, index+1)
+        plt.plot(graph)
+    
+    X = torch.from_numpy(data_cv.transpose(0,3,1,2)).type(dtype)
+    X = Variable(X, requires_grad=False)
+    print(X.size())
+    
+    h = X
+    for layer in layers:
+        h = layer.encode(h)
+        
+    print(h.size()) 
+    
+    for layer in reversed(layers):
+        h = layer.decode(h)
+    
+    y = h.data.cpu().numpy().transpose(0,2,3,1)
+    X = X.data.cpu().numpy().transpose(0,2,3,1)
+    
+    plt.figure(1)
+    for i in range(10):
+        plt.subplot(2,10,i+1)
+        plt.imshow(X[i])
+        plt.axis('off')
+        
+        plt.subplot(2,10,i+1+10)
+        plt.imshow((y[i] - y[i].min()) / (y[i].max() - y[i].min()))
+        plt.axis('off')
+        
+    params = list(layers[0].parameters())[0].data.cpu().numpy().transpose(0,2,3,1)
+    params = (params - params.min()) / (params.max() - params.min())
+    
+    plt.figure(2)
+    for i in range(40):
+        plt.subplot(8,5,i+1)
+        plt.imshow(params[i])
+        plt.axis('off')
+        
+    posenet = PoseNet(deep_net)
+    #print(posenet)
+    
+    torch.save(posenet, 'models/posenet_01.model')
 
-torch.save(posenet, 'models/posenet_00.model')
+def untrained_net():
+    layers = [PoolAE(3, 40, 7, stride=3, padding=6),
+              PoolAE(40, 80, 5),
+              PoolAE(80, 160, 3),
+              AE(160, 256, 1),
+              AE(256, 256, 1),
+              AE(256, 27, 1)]
+    
+    deep_net = DeepAE(layers)
+    deep_net.cuda()
+    
+    posenet = PoseNet(deep_net)
+    
+    return posenet
+
+#train()

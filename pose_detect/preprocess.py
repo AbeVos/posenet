@@ -17,7 +17,7 @@ class_labels = ('A','B','C','D','E','F','G',
 
 def initialize():
     data, label = combine()
-    np.save("data/pose_data", data / 255)
+    np.save("data/pose_data", data)
     np.save("data/pose_label", label.astype(int))
 
 def combine():
@@ -61,6 +61,9 @@ def concatenate(A, B):
     label = np.concatenate((label_A, label_B))
     
     return data, label
+
+def sort(dataset):
+    data, label = dataset
 
 def shuffle(dataset):
     data, label = dataset
