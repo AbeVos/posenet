@@ -112,7 +112,7 @@ label = label[:m]
 
 print(data.shape, label.shape)
 
-net1 = torch.load('models/posenet_00.model')
+net1 = torch.load('models/posenet_01.model')
 net2 = posenet_pretrainer.untrained_net()
 
 predictions = accuracy_double(data_cv, label_cv, net1, net2)

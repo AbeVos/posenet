@@ -213,7 +213,7 @@ def train():
     data = data[:-10]
     print(data.shape)
     
-    epochs = 5
+    epochs = 15
     
     learning_graphs = pretrain_layers(layers, epochs, data)
     
