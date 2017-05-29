@@ -12,6 +12,7 @@ frames = []
 recording = False
 
 while True:
+    #print(cap.get(cv2.CAP_PROP_FPS))
     _, frame = cap.read()
 
     frame = cv2.flip(frame, 1)
@@ -31,14 +32,16 @@ while True:
         break
     elif key == 10:
         recording = True
-    elif key == ord('q'):
+    elif key == ord('q') or len(frames) >= 300:
 
         if recording:
             path = "pose_detect/data/raw/"
             filename = "raw_" + str(datetime.datetime.now())
+            
+            print("Saving " + str(len(frames)) + " frames to " + path + filename)
+            
             frames = np.asarray(frames, dtype=type(float))
 
-            print("Saving " + str(frames.shape[0]) + " frames to " + path + filename)
             np.save(path + filename, frames)
             print("Saved " + str(frames.shape[0]) + " frames")
 
