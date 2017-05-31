@@ -82,6 +82,7 @@ def count_data(dataset):
     for index, class_label in enumerate(class_labels):
         class_instances = np.equal(label, index)
         print("%s: %i"%(class_label, np.sum(class_instances)))
+    print(len(label))
 
 ''' 
 initialize()

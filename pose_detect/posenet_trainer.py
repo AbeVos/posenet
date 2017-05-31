@@ -24,10 +24,12 @@ class_labels = ('A','B','C','D','E','F','G',
                 'O','P','Q','R','S','T','U',
                 'V','W','X','Y','Z','0')
 
+plot = 1
+
 def accuracy(data, label, net):
     X = data.transpose(0,3,1,2)
     X = Variable(torch.from_numpy(X).type(dtype), requires_grad=False)
-    y = net(X)
+    y, _ = net(X)
     predictions = np.argmax(np.exp(y.data.cpu().numpy()), 1)
     
     print(np.sum(np.equal(predictions, label)) / len(label))
@@ -37,7 +39,9 @@ def accuracy(data, label, net):
 def accuracy_double(data, label, net1, net2):
     X = data.transpose(0,3,1,2)
     X = Variable(torch.from_numpy(X).type(dtype), requires_grad=False)
-    y = (net1(X) + net2(X)) / 2
+    y1, _ = net1(X)
+    y2, _ = net2(X)
+    y = (y1 + y2) / 2
     y = np.exp(y.data.cpu().numpy())
     predictions = np.argmax(y, 1)
     
@@ -56,7 +60,8 @@ def accuracy_double(data, label, net1, net2):
     return predictions
 
 def train(net, data, label, data_cv, label_cv, lr=3e-5, epochs=30):
-    optimizer = torch.optim.RMSprop(net.parameters(), lr=0.00003, momentum=0.3)
+    global plot 
+    optimizer = torch.optim.RMSprop(net.parameters(), lr=lr, momentum=0.3)
     
     criterion = nn.NLLLoss()
     
@@ -76,7 +81,7 @@ def train(net, data, label, data_cv, label_cv, lr=3e-5, epochs=30):
             
             t = Variable(torch.from_numpy(np.expand_dims(label[i], 0)).cuda(), requires_grad=False)
             
-            y = net(X)
+            y, _ = net(X)
             
             loss = criterion(y, t)
             loss.backward()
@@ -96,7 +101,7 @@ def train(net, data, label, data_cv, label_cv, lr=3e-5, epochs=30):
         
         t = Variable(torch.from_numpy(label_cv).cuda(), requires_grad=False)
             
-        y = net(X)
+        y, _ = net(X)
         
         loss = criterion(y, t)
         
@@ -106,7 +111,10 @@ def train(net, data, label, data_cv, label_cv, lr=3e-5, epochs=30):
     
     accuracy(data_cv, label_cv, net)
     
-    return training_loss, cv_loss
+    plt.figure(plot)
+    plt.plot(training_loss, 'b', cv_loss, 'r')
+    
+    plot += 1
 
 dataset = preprocess.load()
 dataset = preprocess.concatenate(dataset, preprocess.mirror(dataset))
@@ -114,7 +122,7 @@ dataset = preprocess.shuffle(dataset)
 
 data, label = dataset
 data /= 255
-m = 3000
+m = 4800
 print("%i samples in total."%len(data))
 data_cv = data[m:]
 label_cv = label[m:]
@@ -128,8 +136,10 @@ net2 = posenet_pretrainer.untrained_net()
 
 predictions = accuracy_double(data_cv, label_cv, net1, net2)
 
-training_loss, cv_loss = train(net1, data, label, data_cv, label_cv, epochs=20)
-train(net2, data, label, data_cv, label_cv, epochs=30)
+train(net1, data, label, data_cv, label_cv, epochs=20)
+train(net1, data, label, data_cv, label_cv, epochs=10, lr=1e-6)
+#train(net2, data, label, data_cv, label_cv, epochs=30)
+#train(net2, data, label, data_cv, label_cv, epochs=20, lr=1e-5)
 
 print("Accuracy of model mixture")
 predictions = accuracy_double(data_cv, label_cv, net1, net2)
@@ -142,9 +152,6 @@ for index, datum in enumerate(data_cv[:32]):
     ground_truth = class_labels[label_cv[index]]
     prediction = class_labels[predictions[index]]
     plt.title("%s/%s"%(prediction, ground_truth))
-    
-plt.figure(1)
-plt.plot(training_loss, 'b', cv_loss, 'r')
 
 '''
 params = list(net1.parameters())[0].data.cpu().numpy().transpose(0,2,3,1)
@@ -156,3 +163,5 @@ for i in range(40):
     plt.imshow(params[i])
     plt.axis('off')
 '''
+
+posenet.save(net1)
