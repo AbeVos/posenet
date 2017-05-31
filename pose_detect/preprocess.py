@@ -76,6 +76,13 @@ def shuffle(dataset):
     
     return data, label
 
+def count_data(dataset):
+    data, label = dataset
+    
+    for index, class_label in enumerate(class_labels):
+        class_instances = np.equal(label, index)
+        print("%s: %i"%(class_label, np.sum(class_instances)))
+
 ''' 
 initialize()
 dataset = load()
@@ -94,3 +101,6 @@ for i in range(25):
 '''
 
 #plt.tight_layout()
+
+dataset = load()
+count_data(dataset)
