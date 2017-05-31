@@ -62,6 +62,9 @@ def concatenate(A, B):
     
     return data, label
 
+def sort(dataset):
+    data, label = dataset
+
 def shuffle(dataset):
     data, label = dataset
     
@@ -72,6 +75,13 @@ def shuffle(dataset):
     label = label[index]
     
     return data, label
+
+def count_data(dataset):
+    data, label = dataset
+    
+    for index, class_label in enumerate(class_labels):
+        class_instances = np.equal(label, index)
+        print("%s: %i"%(class_label, np.sum(class_instances)))
 
 ''' 
 initialize()
@@ -91,3 +101,6 @@ for i in range(25):
 '''
 
 #plt.tight_layout()
+
+dataset = load()
+count_data(dataset)
