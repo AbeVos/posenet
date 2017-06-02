@@ -285,4 +285,4 @@ def untrained_net():
     
     return posenet
 
-#train()
+train()
