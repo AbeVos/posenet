@@ -15,7 +15,6 @@ import matplotlib.pyplot as plt
 
 import preprocess
 import posenet
-import posenet_pretrainer
 
 dtype = torch.cuda.FloatTensor
 
@@ -30,9 +29,18 @@ def accuracy(data, label, net):
     X = data.transpose(0,3,1,2)
     X = Variable(torch.from_numpy(X).type(dtype), requires_grad=False)
     y, _ = net(X)
-    predictions = np.argmax(np.exp(y.data.cpu().numpy()), 1)
+    y = np.exp(y.data.cpu().numpy())
+    predictions = np.argmax(y, 1)
     
-    print(np.sum(np.equal(predictions, label)) / len(label))
+    for index, l in enumerate(class_labels):
+        a = np.equal(label, index)  # items containing current label
+        b = np.equal(predictions, label) # items containing correct predictions
+        c = np.logical_and(a, b) # items containing correct predictions of current label
+        
+        if np.sum(a) > 0:
+            print("%s: %.2f%% | %s/%s"%(l, np.sum(c) / np.sum(a), np.sum(c), np.sum(a)))
+    
+    print("Combined model accuracy: %s"%(np.sum(np.equal(predictions, label)) / len(label)))
     
     return predictions
 
@@ -67,8 +75,6 @@ def train(net, data, label, data_cv, label_cv, lr=3e-5, epochs=30):
     
     training_loss = []
     cv_loss = []
-    
-    accuracy(data_cv, label_cv, net)
     
     for epoch in range(epochs):
         total_loss = 0
@@ -109,8 +115,6 @@ def train(net, data, label, data_cv, label_cv, lr=3e-5, epochs=30):
         
         print("Epoch %i | Training loss: %f | Validation loss: %f"%(epoch+1, training_loss[-1], cv_loss[-1]))
     
-    accuracy(data_cv, label_cv, net)
-    
     plt.figure(plot)
     plt.plot(training_loss, 'b', cv_loss, 'r')
     
@@ -122,7 +126,7 @@ dataset = preprocess.shuffle(dataset)
 
 data, label = dataset
 data /= 255
-m = 4800
+m = 6500
 print("%i samples in total."%len(data))
 data_cv = data[m:]
 label_cv = label[m:]
@@ -131,18 +135,23 @@ label = label[:m]
 
 print("Training samples: %i, validation samples: %i"%(len(data), len(data_cv)))
 
-net1 = torch.load('models/posenet_01.model')
-net2 = posenet_pretrainer.untrained_net()
+net1 = torch.load('models/posenet_00.model')
+net2 = torch.load('models/posenet_01.model')
+net = posenet.PoseNetMixture(net1, net2)
 
-predictions = accuracy_double(data_cv, label_cv, net1, net2)
+predictions = accuracy(data_cv, label_cv, net1)
 
-train(net1, data, label, data_cv, label_cv, epochs=20)
-train(net1, data, label, data_cv, label_cv, epochs=10, lr=1e-6)
+train(net, data, label, data_cv, label_cv, epochs=25, lr=3e-5)
+train(net, data, label, data_cv, label_cv, epochs=10, lr=3e-6)
+
+#train(net1, data, label, data_cv, label_cv, epochs=20)
+#train(net1, data, label, data_cv, label_cv, epochs=10, lr=1e-6)
 #train(net2, data, label, data_cv, label_cv, epochs=30)
 #train(net2, data, label, data_cv, label_cv, epochs=20, lr=1e-5)
 
-print("Accuracy of model mixture")
-predictions = accuracy_double(data_cv, label_cv, net1, net2)
+#print("Accuracy of model mixture")
+#predictions = accuracy_double(data_cv, label_cv, net1, net2)
+predictions = accuracy(data_cv, label_cv, net)
 
 plt.figure(0)
 for index, datum in enumerate(data_cv[:32]):
@@ -164,4 +173,4 @@ for i in range(40):
     plt.axis('off')
 '''
 
-posenet.save(net1)
+posenet.save(net)

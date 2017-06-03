@@ -14,104 +14,9 @@ from torch.autograd import Variable
 import numpy as np
 import matplotlib.pyplot as plt
 
-from posenet import PoseNet
+from posenet import PoseNet, AE, PoolAE, DeepAE
 
 dtype = torch.cuda.FloatTensor
-
-class AE(nn.Module):
-    def __init__(self, in_features, out_features, kernel, stride=1, padding=0):
-        super(AE, self).__init__()
-        
-        self.encoder = nn.Conv2d(in_features, out_features, kernel, stride=stride, padding=padding)
-        self.decoder = nn.ConvTranspose2d(out_features, in_features, kernel, stride=stride, padding=padding)
-    
-    def forward(self, x):
-        x = self.encoder(x)
-        x = F.dropout(x, training=self.training)
-        x = self.decoder(x)
-        
-        return x
-    
-    def encode(self, x):
-        x = F.leaky_relu(self.encoder(x))
-        return x
-    
-    def decode(self, x):
-        x = self.decoder(x)
-        return x
-        
-
-class PoolAE(AE):
-    def __init__(self, in_features, out_features, kernel, stride=1, padding=0):
-        super(PoolAE, self).__init__(in_features, out_features, kernel, stride, padding)
-        
-        self.pool = nn.MaxPool2d(2, return_indices=True)
-        self.unpool = nn.MaxUnpool2d(2)
-    
-    def forward(self, x):
-        x = self.encode(x)
-        x = F.dropout(x, training=self.training)
-        x = self.decode(x)
-        
-        return x
-    
-    def encode(self, x):
-        x, i = self.pool(F.leaky_relu(self.encoder(x)))
-        self.index = i
-        return x
-    
-    def decode(self, x):
-        x = self.decoder(self.unpool(x, self.index))
-        return x
-
-class DeepAE(nn.Module):
-    def __init__(self, layers):
-        super(DeepAE, self).__init__()
-        
-        self.conv1 = layers[0].encoder
-        self.pool1 = layers[0].pool
-        
-        self.conv2 = layers[1].encoder
-        self.pool2 = layers[1].pool
-        
-        self.conv3 = layers[2].encoder
-        self.pool3 = layers[2].pool
-        
-        self.fc1 = layers[3].encoder
-        self.fc2 = layers[4].encoder
-        self.fc3 = layers[5].encoder
-        
-        self.t_fc3 = layers[5].decoder
-        self.t_fc2 = layers[4].decoder
-        self.t_fc1 = layers[3].decoder
-        
-        self.unpool3 = layers[2].unpool
-        self.t_conv3 = layers[2].decoder
-        
-        self.unpool2 = layers[1].unpool
-        self.t_conv2 = layers[1].decoder
-        
-        self.unpool1 = layers[0].unpool
-        self.t_conv1 = layers[0].decoder\
-        
-    def forward(self, x):
-        x, index1 = self.pool1(F.leaky_relu(self.conv1(x)))
-        x, index2 = self.pool2(F.leaky_relu(self.conv2(x)))
-        x, index3 = self.pool3(F.leaky_relu(self.conv3(x)))
-        
-        x = F.leaky_relu(self.fc1(x))
-        x = F.leaky_relu(self.fc2(x))
-        x = F.leaky_relu(self.fc3(x))
-        
-        x = self.t_fc3(x)
-        x = self.t_fc2(x)
-        x = self.t_fc1(x)
-        
-        x = self.t_conv3(self.unpool3(x, index3))
-        x = self.t_conv2(self.unpool2(x, index2))
-        x = self.t_conv1(self.unpool1(x, index1))
-        
-        return x
 
 def pretrain_layers(layers, epochs, data):
     learning_graphs = []
@@ -210,7 +115,9 @@ def train():
     np.random.shuffle(data)
     
     data_cv = data[-10:]
-    data = data[:-10]
+    data = data[:30000]     # posenet_00
+    #data = data[10000:-10] # posenet_01
+    
     print(data.shape)
     
     epochs = 15
@@ -268,21 +175,6 @@ def train():
     posenet = PoseNet(deep_net)
     #print(posenet)
     
-    torch.save(posenet, 'models/posenet_01.model')
-
-def untrained_net():
-    layers = [PoolAE(3, 40, 7, stride=3, padding=6),
-              PoolAE(40, 80, 5),
-              PoolAE(80, 160, 3),
-              AE(160, 256, 1),
-              AE(256, 256, 1),
-              AE(256, 27, 1)]
-    
-    deep_net = DeepAE(layers)
-    deep_net.cuda()
-    
-    posenet = PoseNet(deep_net)
-    
-    return posenet
+    torch.save(posenet, 'models/posenet_00.model')
 
 train()
