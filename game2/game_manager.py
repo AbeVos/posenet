@@ -6,6 +6,7 @@ Created on Sat Jun  3 18:22:53 2017
 @author: abe
 """
 
+import numpy as np
 import pygame as pg
 import pygame.locals as local
 
@@ -13,19 +14,24 @@ from event import Event
 
 class State():
     def __init__(self):
-        self.background_color = pg.Color(127, 255, 63)
+        self.background = get_image('bg_yellow')
+        
+        global_state_changed.subscribe(self.global_state_changed)
     
     def update(self, delta):
         pass
     
     def draw(self, surface):
         pass
+    
+    def global_state_changed(self, previous_state, new_state):
+        pass
 
-def init():
-    global running, screen_size, global_states, global_state, screen, clock, update, draw, key_down, global_state_changed, game_quit
+def init(width, height):
+    global running, screen_size, global_states, global_state, screen, clock, update, draw, key_down, cursor_down, cursor_up, global_state_changed, game_quit, cursor_position
     
     running = True
-    screen_size = (640, 480)
+    screen_size = (width, height)
     
     global_states = {}
     global_state = 'No state selected'
@@ -38,10 +44,14 @@ def init():
     
     load_resources()
     
+    cursor_position = np.array([0,0], dtype=float)
+    
     ## Global events
     update = Event()
     draw = Event()
     key_down = Event()
+    cursor_down = Event()
+    cursor_up = Event()
     global_state_changed = Event()
     game_quit = Event()
 
@@ -56,7 +66,8 @@ def start():
     while running:
         update(clock.get_rawtime() / 1000)
         
-        screen.fill(global_states[global_state].background_color)
+        #screen.fill(global_states[global_state].background_color)
+        screen.blit(global_states[global_state].background, screen.get_rect())
         draw(screen)
         
         pg.display.update()
@@ -73,8 +84,8 @@ def start():
                 else:
                     key_down(event.key)
                 
-                if event.key == ord('q'):
-                    set_global_state('tutorial')
+                #if event.key == ord('q'):
+                #    set_global_state('tutorial')
     
     print("Quit application")
 
@@ -89,7 +100,17 @@ def load_resources():
 
     images = {
         'block_blue': pg.image.load('resources/images/block_blue.png'),
-        'cursor_block': pg.image.load('resources/images/cursor_block.png')
+        'cursor_block': pg.image.load('resources/images/cursor_block.png'),
+        'button_down': pg.image.load('resources/images/button_down.png'),
+        'button_up': pg.image.load('resources/images/button_up.png'),
+        'cancel_down': pg.image.load('resources/images/cancel_down.png'),
+        'cancel_up': pg.image.load('resources/images/cancel_up.png'),
+        'cursor_standard': pg.image.load('resources/images/cursor_standard.png'),
+        'cursor_press': pg.image.load('resources/images/cursor_press.png'),
+        'bg_yellow': pg.image.load('resources/images/bg_yellow.png'),
+        'screen_active': pg.image.load('resources/images/screen_active.png'),
+        'screen_empty': pg.image.load('resources/images/screen_empty.png'),
+        'empty':pg.image.load('resources/images/empty.png')
         }
 
 def get_font(font):
@@ -123,3 +144,11 @@ def stop():
     game_quit()
     pg.quit()
     running = False
+    
+def set_cursor_position(position):
+    global cursor_position
+    cursor_position = np.array(position, dtype=float)
+
+def get_cursor_position():
+    global cursor_position
+    return cursor_position

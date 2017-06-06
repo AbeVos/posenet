@@ -23,7 +23,6 @@ class Line(Actor):
         
     def draw(self, surface):
         super(Line, self).draw(surface)
-        #print(self.position)
     
     def set_color(self, color):
         self.color = color

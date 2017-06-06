@@ -7,6 +7,8 @@ Created on Mon May 15 12:20:26 2017
 """
 
 import pygame as pg
+import numpy as np
+
 import game_manager as game
 
 class Actor(object):
@@ -19,7 +21,7 @@ class Actor(object):
         self.image = pg.Surface((1,1))
         self.image_rect = self.image.get_rect()
         
-        self.position = (0,0)
+        self.set_position(position)
         
         self.children = []
     
@@ -57,4 +59,4 @@ class Actor(object):
         self.rect = self.surface.get_rect()
     
     def set_position(self, position):
-        self.position = position
+        self.position = np.array(position, dtype=float)

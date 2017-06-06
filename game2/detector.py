@@ -15,7 +15,7 @@ from mlutil.image import pyramid
 import posenet
 
 def init():
-    global width, height, class_labels, pyramid_iterations, net, capture, hand, score_threshold, best_rect
+    global width, height, class_labels, pyramid_iterations, net, capture, hand, score_threshold, best_rect, hand_frame
     
     width, height = 640,480
     
@@ -37,10 +37,10 @@ def init():
     
     score_threshold = 25
     best_rect = 0,0,1,1
-    hand = np.zeros((64,64,3))
+    hand_frame = np.zeros((64,64,3))
 
 def update(delta):
-    global width, height, class_labels, pyramid_iterations, net, capture, hand, score_threshold, best_rect
+    global width, height, class_labels, pyramid_iterations, net, capture, hand, score_threshold, best_rect, frame, hand_frame
     
     ## Read a frame from the capture and flip it horizontally 
     ## and along the color channel to convert from BGR to RGB.
@@ -74,11 +74,12 @@ def update(delta):
     best_score = 0
     
     for index, contour in enumerate(contours):
-        #x,y,w,h = cv.boundingRect(contour)
-        (x,y),r = cv.minEnclosingCircle(contour)
-        print(x,y,r)
-        x,y,w,h = int(x-r),int(y-r),int(2*r),int(2*r)
-        print(x,y,w,h)
+        x,y,w,h = cv.boundingRect(contour)
+        
+        #(x,y),r = cv.minEnclosingCircle(contour)
+        #print(x,y,r)
+        #x,y,w,h = np.max([x-r,y-r,2*r,2*r], dtype=int)
+        #print(x,y,w,h)
         
         if w is 0 or h is 0: continue
     
@@ -94,21 +95,32 @@ def update(delta):
     
     if best_score > score_threshold:
         x,y,w,h = best_rect
-        cv.rectangle(frame, (x, y), (x+w, y+h), (0,255,0), 2)
-        hand = imresize(frame[y:y+h,x:x+w], (64,64))
+        #cv.rectangle(frame, (x, y), (x+w, y+h), (0,255,0), 2)
+        hand_frame = imresize(frame[y:y+h,x:x+w], (64,64))
     
     cv.imshow("Frame", np.flip(frame, 2) / 255)
     cv.imshow("Prediction", prediction)
-    cv.imshow("Hand", np.flip(hand, 2))
+    cv.imshow("Hand", np.flip(hand_frame, 2))
     
     cv.waitKey(1)
 
 def current_position():
+    global width, height, best_rect
     x,y,w,h = best_rect
-    return (2 * x + w) / 2, (2 * y + h) / 2
+    
+    x = (2 * x + w) / 2 / width * game.get_screen_size()[0]
+    y = (2 * y + h) / 2 / height * game.get_screen_size()[1]
+    
+    return np.array([x, y])
 
 def current_pose():
     return ''
+
+def get_hand_frame(size):
+    global frame, best_rect
+    x,y,w,h = best_rect
+    hand = imresize(frame[y:y+h,x:x+w], size)
+    return hand.astype(np.uint8).transpose(1,0,2)
 
 def game_quit():
     print("Release capture")
