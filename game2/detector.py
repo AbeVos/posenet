@@ -15,7 +15,7 @@ from mlutil.image import pyramid
 import posenet
 
 def init():
-    global width, height, class_labels, pyramid_iterations, net, capture, hand, score_threshold, best_rect, hand_frame
+    global width, height, class_labels, pyramid_iterations, net, capture, hand, score_threshold, best_rect, hand_frame, current_pose
     
     width, height = 640,480
     
@@ -38,9 +38,10 @@ def init():
     score_threshold = 25
     best_rect = 0,0,1,1
     hand_frame = np.zeros((64,64,3))
+    current_pose = 26
 
 def update(delta):
-    global width, height, class_labels, pyramid_iterations, net, capture, hand, score_threshold, best_rect, frame, hand_frame
+    global width, height, class_labels, pyramid_iterations, net, capture, hand, score_threshold, best_rect, frame, hand_frame, current_pose
     
     ## Read a frame from the capture and flip it horizontally 
     ## and along the color channel to convert from BGR to RGB.
@@ -86,25 +87,28 @@ def update(delta):
         image = imresize(frame[y:y+h,x:x+w], (64,64))
         output = posenet.forward(net, image / 255)
         
-        if np.argmax(output) < 26:
+        largest_output = np.argmax(output)
+        
+        if largest_output < 26:
             score = (output.max() + np.sum(prediction[y:y+h,x:x+w]) / (w + h) -
                      output[:,:,-1]**2)
             if score > best_score:
                 best_score = score
                 best_rect = x,y,w,h
+                current_pose = largest_output
     
     if best_score > score_threshold:
         x,y,w,h = best_rect
         #cv.rectangle(frame, (x, y), (x+w, y+h), (0,255,0), 2)
         hand_frame = imresize(frame[y:y+h,x:x+w], (64,64))
     
-    #cv.imshow("Frame", np.flip(frame, 2) / 255)
+    cv.imshow("Frame", np.flip(frame, 2) / 255)
     #cv.imshow("Prediction", prediction)
     #cv.imshow("Hand", np.flip(hand_frame, 2))
     
     cv.waitKey(1)
 
-def current_position():
+def get_current_position():
     global width, height, best_rect
     x,y,w,h = best_rect
     
@@ -113,8 +117,9 @@ def current_position():
     
     return np.array([x, y])
 
-def current_pose():
-    return ''
+def get_current_pose():
+    global class_labels, current_pose
+    return class_labels[current_pose].lower()
 
 def get_hand_frame(size):
     global frame, best_rect

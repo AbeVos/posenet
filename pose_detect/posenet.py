@@ -154,6 +154,8 @@ class PoseNet(nn.Module):
         self.conv2 = deep_net.conv2
         self.pool2 = deep_net.pool2
         
+        self.dropout2d = nn.Dropout2d(0.3)
+        
         self.conv3 = deep_net.conv3
         self.pool3 = deep_net.pool3
         
@@ -165,8 +167,11 @@ class PoseNet(nn.Module):
                 
     def forward(self, x):
         x, _ = self.pool1(F.leaky_relu(self.conv1(x)))
+        x = self.dropout2d(x)
         x, _ = self.pool2(F.leaky_relu(self.conv2(x)))
+        x = self.dropout2d(x)
         x, _ = self.pool3(F.leaky_relu(self.conv3(x)))
+        x = self.dropout2d(x)
         
         x = F.leaky_relu(self.fc1(x))
         x = F.leaky_relu(self.fc2(x))

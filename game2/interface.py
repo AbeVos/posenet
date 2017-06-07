@@ -10,6 +10,7 @@ import pygame as pg
 import numpy as np
 
 from actor import Actor, AnimatedActor
+from text import Line
 import game_manager as game
 import detector
 import util
@@ -43,7 +44,7 @@ class Cursor(Actor):
         if self.is_down:
             self.load_icon.update(delta)
         
-        target = detector.current_position()
+        target = detector.get_current_position()
         force = 10 * util.normalize(target - self.position)
         
         distance_modifier = np.min([100, util.distance(self.position, target)]) / 100
@@ -166,6 +167,9 @@ class HandScreen(Button):
         self.hand_surface = pg.Surface((256,256))
         self.hand_rect = self.hand_surface.get_rect()
         
+        self.label_text = Line((315, 450), '?', game.get_font('screen_small'))
+        self.label_text.set_color(pg.Color(50,240,0))
+        
     def update(self, delta):
         super(Button, self).update(delta)
         
@@ -175,6 +179,10 @@ class HandScreen(Button):
         
         elif self.is_pressed:
             self.unpress()
+            
+        if self.is_pressed:
+            self.label_text.set_text(detector.get_current_pose())
+            self.label_text.update(delta)
     
     def draw(self, surface):
         if not self.is_active: return
@@ -192,6 +200,9 @@ class HandScreen(Button):
         
         for child in self.children:
             child.draw(surface)
+        
+        if self.is_pressed:
+            self.label_text.draw(self.surface)
         
         surface.blit(self.surface, self.rect)
     

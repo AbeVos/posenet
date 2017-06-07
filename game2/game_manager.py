@@ -95,7 +95,7 @@ def load_resources():
     fonts = {
         'title': pg.font.Font('resources/fonts/FreeSans.ttf', 64),
         'screen_large': pg.font.Font('resources/fonts/Renegade Master.ttf', 64),
-        'screen_small': pg.font.Font('resources/fonts/Renegade Master.ttf', 16)
+        'screen_small': pg.font.Font('resources/fonts/Renegade Master.ttf', 48)
         }
 
     images = {

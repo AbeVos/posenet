@@ -69,7 +69,7 @@ def accuracy_double(data, label, net1, net2):
 
 def train(net, data, label, data_cv, label_cv, lr=3e-5, epochs=30):
     global plot 
-    optimizer = torch.optim.RMSprop(net.parameters(), lr=lr, momentum=0.3)
+    optimizer = torch.optim.RMSprop(net.parameters(), lr=lr, weight_decay=0.1)
     
     criterion = nn.NLLLoss()
     
@@ -126,7 +126,7 @@ dataset = preprocess.shuffle(dataset)
 
 data, label = dataset
 data /= 255
-m = 6500
+m = 7500
 print("%i samples in total."%len(data))
 data_cv = data[m:]
 label_cv = label[m:]
@@ -141,8 +141,8 @@ net = posenet.PoseNetMixture(net1, net2)
 
 predictions = accuracy(data_cv, label_cv, net1)
 
-train(net, data, label, data_cv, label_cv, epochs=25, lr=3e-5)
-train(net, data, label, data_cv, label_cv, epochs=10, lr=3e-6)
+train(net, data, label, data_cv, label_cv, epochs=20, lr=3e-5)
+train(net, data, label, data_cv, label_cv, epochs=5, lr=3e-6)
 
 #train(net1, data, label, data_cv, label_cv, epochs=20)
 #train(net1, data, label, data_cv, label_cv, epochs=10, lr=1e-6)

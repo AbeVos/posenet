@@ -26,7 +26,7 @@ class Line(Actor):
     
     def set_color(self, color):
         self.color = color
-        self.set_text(self.text, self.font)
+        self.set_text(self.text)
     
     def set_text(self, text):
         self.text = text
