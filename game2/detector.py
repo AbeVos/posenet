@@ -98,9 +98,9 @@ def update(delta):
         #cv.rectangle(frame, (x, y), (x+w, y+h), (0,255,0), 2)
         hand_frame = imresize(frame[y:y+h,x:x+w], (64,64))
     
-    cv.imshow("Frame", np.flip(frame, 2) / 255)
-    cv.imshow("Prediction", prediction)
-    cv.imshow("Hand", np.flip(hand_frame, 2))
+    #cv.imshow("Frame", np.flip(frame, 2) / 255)
+    #cv.imshow("Prediction", prediction)
+    #cv.imshow("Hand", np.flip(hand_frame, 2))
     
     cv.waitKey(1)
 

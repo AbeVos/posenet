@@ -9,7 +9,7 @@ Created on Sun Jun  4 12:57:52 2017
 import pygame as pg
 import numpy as np
 
-from actor import Actor
+from actor import Actor, AnimatedActor
 import game_manager as game
 import detector
 import util
@@ -26,6 +26,13 @@ class Cursor(Actor):
         game.cursor_down.subscribe(self.cursor_down)
         game.cursor_up.subscribe(self.cursor_up)
         
+        self.load_icon = AnimatedActor((64,96), mode='one_shot')
+        self.load_icon.set_animation(game.get_animation('load'), (64,64), 20)
+        self.load_icon_rect = self.load_icon.surface.get_rect()
+        
+        self.is_down = False
+        self.button_type = None
+        
     def __del__(self):
         game.cursor_down.unsubscribe(self.cursor_down)
         game.cursor_up.unsubscribe(self.cursor_up)
@@ -33,16 +40,14 @@ class Cursor(Actor):
     def update(self, delta):
         super(Cursor, self).update(delta)
         
-        #self.set_position(detector.current_position())
+        if self.is_down:
+            self.load_icon.update(delta)
         
         target = detector.current_position()
         force = 10 * util.normalize(target - self.position)
         
         distance_modifier = np.min([100, util.distance(self.position, target)]) / 100
         self.velocity = distance_modifier * (force + 0.9 * self.velocity)
-        
-        #if np.linalg.norm(self.velocity) > 10:
-        #    self.velocity = 10 * util.normalize(self.velocity)
         
         self.position += self.velocity
         
@@ -57,15 +62,33 @@ class Cursor(Actor):
             self.position[1] = game.get_screen_size()[1]
         
         game.set_cursor_position(self.position)
+    
+    def draw(self, surface):
+        if not self.is_active: return
         
+        if self.is_down and self.button_type is HandScreen: return
+        
+        self.rect.center = self.position
+        self.load_icon.center = self.position
+        
+        self.surface.fill(pg.Color(0,0,0,0))
+        self.surface.blit(self.image, self.image_rect)
+        
+        if self.is_down:
+            self.load_icon.draw(self.surface)
+        
+        surface.blit(self.surface, self.rect)
+    
     def cursor_down(self, button_type=None):
-        if button_type is None:
-            self.set_image(game.get_image('cursor_press'))
-        elif button_type is HandScreen:
-            self.set_image(game.get_image('empty'))
+        self.set_image(game.get_image('cursor_press'))
+        self.load_icon.start_animation()
+        
+        self.is_down = True
+        self.button_type = button_type
         
     def cursor_up(self):
         self.set_image(game.get_image('cursor_standard'))
+        self.is_down = False
 
 class Button(Actor):
     def __init__(self, position, listener):
@@ -77,7 +100,7 @@ class Button(Actor):
         
         self.is_pressed = False
         self.pressed_time = 0.0
-        self.wait_time = 1.0
+        self.wait_time = 1.2
         
         self.button_pressed = Event()
         self.button_pressed.subscribe(listener)
@@ -140,7 +163,7 @@ class HandScreen(Button):
         self.is_pressed = False
         self.wait_time = 0
         
-        self.hand_surface = pg.Surface((128,128))
+        self.hand_surface = pg.Surface((256,256))
         self.hand_rect = self.hand_surface.get_rect()
         
     def update(self, delta):
@@ -157,13 +180,13 @@ class HandScreen(Button):
         if not self.is_active: return
         
         self.rect.center = self.position
+        self.hand_rect.center = (256, 192)
         
         self.surface.fill(pg.Color(0,0,0,0))
         
         if self.is_pressed:
-            self.hand_rect.center = (0,0)
-            pg.surfarray.blit_array(self.hand_surface, detector.get_hand_frame((128, 128)))
-            self.surface.blit(self.hand_surface, self.hand_surface.get_rect())
+            pg.surfarray.blit_array(self.hand_surface, detector.get_hand_frame((256, 256)))
+            self.surface.blit(self.hand_surface, self.hand_rect)
         
         self.surface.blit(self.image, self.image_rect)
         
@@ -178,3 +201,8 @@ class HandScreen(Button):
                 cursor_position[0] <= self.position[0] + self.image.get_width() / 2 and
                 cursor_position[1] >= self.position[1] - self.image.get_height() / 2 and
                 cursor_position[1] <= self.position[1] + self.image.get_height() / 2)
+
+    def press(self):
+        self.is_pressed = True
+        self.set_image(self.button_down_image)
+        game.cursor_down(type(self))

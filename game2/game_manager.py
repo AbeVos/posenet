@@ -90,7 +90,7 @@ def start():
     print("Quit application")
 
 def load_resources():
-    global fonts, images
+    global fonts, images, animations
     
     fonts = {
         'title': pg.font.Font('resources/fonts/FreeSans.ttf', 64),
@@ -110,7 +110,16 @@ def load_resources():
         'bg_yellow': pg.image.load('resources/images/bg_yellow.png'),
         'screen_active': pg.image.load('resources/images/screen_active.png'),
         'screen_empty': pg.image.load('resources/images/screen_empty.png'),
-        'empty':pg.image.load('resources/images/empty.png')
+        'empty': pg.image.load('resources/images/empty.png')
+        }
+    
+    animations = {
+        'pose_a': [pg.image.load('resources/images/animation/%.4i.png'%(i+1)) for i in range(15)],
+        'pose_b': [pg.image.load('resources/images/animation/%.4i.png'%(i+1)) for i in range(15,30)],
+        'pose_c': [pg.image.load('resources/images/animation/%.4i.png'%(i+1)) for i in range(30,45)],
+        'pose_d': [pg.image.load('resources/images/animation/%.4i.png'%(i+1)) for i in range(45,60)],
+        'pose_e': [pg.image.load('resources/images/animation/%.4i.png'%(i+1)) for i in range(60,75)],
+        'load': [pg.image.load('resources/images/animation/load%.4i.png'%(i+1)) for i in range(20)]
         }
 
 def get_font(font):
@@ -120,6 +129,10 @@ def get_font(font):
 def get_image(image):
     global images
     return images[image]
+
+def get_animation(animation):
+    global animations
+    return animations[animation]
 
 def get_screen_size():
     global screen_size

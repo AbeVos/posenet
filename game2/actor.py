@@ -60,3 +60,76 @@ class Actor(object):
     
     def set_position(self, position):
         self.position = np.array(position, dtype=float)
+        
+class AnimatedActor(Actor):
+    def __init__(self, position, mode='loop', delay=0):
+        super(AnimatedActor, self).__init__(position)
+        
+        self.mode = mode
+        self.delay = delay
+        
+    def update(self, delta):
+        super(AnimatedActor, self).update(delta)
+        
+        if self.mode is 'loop':
+            if self.frame_time <= 1:
+                self.frame_time += delta / self.animation_length
+                self.current_frame = int(self.frame_time * float(self.n_frames - 1))
+                
+                if self.current_frame >= self.n_frames:
+                    self.current_frame = self.n_frames - 1
+                
+                self.set_image(self.frames[self.current_frame])
+            else:
+                self.delay_time += delta
+                
+                if self.delay_time >= self.delay:
+                    self.delay_time = 0
+                    self.frame_time = 0
+        elif self.mode is 'pingpong':
+            if self.frame_time <= 1:
+                self.frame_time += delta / self.animation_length
+                self.current_frame = int(self.frame_time * float(self.n_frames - 1))
+                
+                if self.current_frame >= self.n_frames:
+                    self.current_frame = self.n_frames - 1
+                
+                if self.pingpong_to:
+                    self.set_image(self.frames[self.current_frame])
+                else:
+                    self.set_image(self.frames[self.n_frames - self.current_frame - 1])
+            else:
+                self.delay_time += delta
+                
+                if self.delay_time >= self.delay:
+                    self.delay_time = 0
+                    self.frame_time = 0
+                
+                    self.pingpong_to = not self.pingpong_to
+        elif self.mode is 'one_shot':
+            if self.frame_time <= 1:
+                self.frame_time += delta / self.animation_length
+                self.current_frame = int(self.frame_time * float(self.n_frames - 1))
+                
+                if self.current_frame >= self.n_frames:
+                    self.current_frame = self.n_frames - 1
+                
+                self.set_image(self.frames[self.current_frame])
+        
+    def set_animation(self, frames, frame_size, n_frames, animation_length=1):
+        self.frames = frames
+        self.frame_size = frame_size
+        self.n_frames = n_frames
+        self.animation_length = animation_length
+        
+        self.current_frame = 0
+        self.frame_time = 0
+        self.delay_time = 0
+        self.pingpong_to = True
+    
+    def start_animation(self):
+        self.current_frame = 0
+        self.frame_time = 0
+        self.delay_time = 0
+        self.pingpong_to = True
+        self.set_image(self.frames[0])
