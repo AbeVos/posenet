@@ -115,9 +115,10 @@ class Detector():
             if len(self.classification_scores) > self.wma_n:
                 self.classification_scores.pop(0)
                 
-            weights = np.arange(len(self.classification_scores))
-            self.classification_moving_average = np.sum(weights[::-1].reshape(-1,1,1,1) * np.array(self.classification_scores), axis=0)
-            self.classification_moving_average = self.classification_moving_average / np.sum(weights)
+            if len(self.classification_scores) > 0:
+                weights = np.arange(len(self.classification_scores))
+                self.classification_moving_average = np.sum(weights[::-1].reshape(-1,1,1,1) * np.array(self.classification_scores), axis=0)
+                self.classification_moving_average = self.classification_moving_average / np.sum(weights)
             
             self.fixed_frame = None
         
