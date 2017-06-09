@@ -27,7 +27,7 @@ def pretrain_layers(layers, epochs, data):
         layer.cuda()
         layer.train()
         
-        optimizer = torch.optim.RMSprop(layer.parameters(), lr=0.0001, momentum=0.3)
+        optimizer = torch.optim.RMSprop(layer.parameters(), lr=0.0001)
         criterion = torch.nn.MSELoss()
         
         training_loss = []
@@ -114,8 +114,8 @@ def train():
     np.random.shuffle(data)
     
     data_cv = data[-10:]
-    data = data[:30000]     # posenet_00
-    #data = data[10000:-10] # posenet_01
+    #data = data[:30000]     # posenet_00
+    data = data[10000:-10] # posenet_01
     
     print(data.shape)
     
@@ -174,6 +174,6 @@ def train():
     posenet = PoseNet(deep_net)
     #print(posenet)
     
-    torch.save(posenet, 'models/posenet_00.model')
+    torch.save(posenet, 'models/posenet_01.model')
 
 train()

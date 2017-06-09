@@ -128,7 +128,7 @@ dataset = preprocess.shuffle(dataset)
 
 data, label = dataset
 data /= 255
-m = 7500
+m = 8000
 print("%i samples in total."%len(data))
 data_cv = data[m:]
 label_cv = label[m:]
