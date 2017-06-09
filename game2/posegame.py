@@ -10,7 +10,7 @@ import game_manager as game
 import detect
 from text import Line
 from actor import AnimatedActor
-from interface import Cursor, Button, CancelButton, HandScreen
+from interface import Cursor, Button, CancelButton, HandScreen, PoseTutorial
 
 class MainMenu(game.State):
     def __init__(self):
@@ -23,44 +23,17 @@ class MainMenu(game.State):
         self.cursor = Cursor()
         self.start_button = Button((game.screen_size[0] / 2, game.screen_size[1] / 2), self.start_button_pressed)
         
-        self.pose1 = AnimatedActor((300, 600))
-        self.pose1.set_animation(game.get_animation('pose_a'), (256, 256), 15)
-        
-        self.pose2 = AnimatedActor((500, 600), delay=0.5)
-        self.pose2.set_animation(game.get_animation('pose_b'), (256, 256), 15)
-        
-        self.pose3 = AnimatedActor((700, 600), mode='pingpong')
-        self.pose3.set_animation(game.get_animation('pose_c'), (256, 256), 15)
-        
-        self.pose4 = AnimatedActor((900, 600), mode='pingpong', delay = 0.5)
-        self.pose4.set_animation(game.get_animation('pose_d'), (256, 256), 15)
-        
-        self.pose5 = AnimatedActor((1100, 600), mode='pingpong')
-        self.pose5.set_animation(game.get_animation('pose_e'), (256, 256), 15)
-        
         game.global_state_changed.subscribe(self.global_state_changed)
     
     def update(self, delta):
         self.title.update(delta)
         self.cursor.update(delta)
         self.start_button.update(delta)
-        
-        self.pose1.update(delta)
-        self.pose2.update(delta)
-        self.pose3.update(delta)
-        self.pose4.update(delta)
-        self.pose5.update(delta)
     
     def draw(self, surface):
         self.title.draw(surface)
         self.start_button.draw(surface)
         self.cursor.draw(surface)
-        
-        self.pose1.draw(surface)
-        self.pose2.draw(surface)
-        self.pose3.draw(surface)
-        self.pose4.draw(surface)
-        self.pose5.draw(surface)
     
     def start_button_pressed(self):
         game.set_global_state('tutorial')
@@ -82,6 +55,8 @@ class Tutorial(game.State):
         
         self.hand_screen = HandScreen((3 * game.screen_size[0] / 4, game.screen_size[1] / 2))
         
+        self.pose_tutorial = PoseTutorial((game.screen_size[0] / 4, game.screen_size[1] / 2), 'a')
+        
         game.global_state_changed.subscribe(self.global_state_changed)
     
     def update(self, delta):
@@ -89,11 +64,13 @@ class Tutorial(game.State):
         self.cursor.update(delta)
         self.return_button.update(delta)
         self.hand_screen.update(delta)
+        self.pose_tutorial.update(delta)
     
     def draw(self, surface):
         self.title.draw(surface)
         self.return_button.draw(surface)
         self.hand_screen.draw(surface)
+        self.pose_tutorial.draw(surface)
         self.cursor.draw(surface)
         
     def return_button_pressed(self):

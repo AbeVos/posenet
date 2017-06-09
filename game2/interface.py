@@ -105,6 +105,8 @@ class Button(Actor):
         
         self.button_pressed = Event()
         self.button_pressed.subscribe(listener)
+        
+        game.key_down.subscribe(self.key_down)
     
     def update(self, delta):
         super(Button, self).update(delta)
@@ -122,6 +124,9 @@ class Button(Actor):
             if self.pressed_time >= self.wait_time:
                 self.button_pressed()
                 self.pressed_time = 0
+    
+    def key_down(self, key):
+        self.button_pressed()
     
     def cursor_over(self):
         return util.distance(game.get_cursor_position(), self.position) < self.image.get_width() / 2
@@ -218,3 +223,10 @@ class HandScreen(Button):
         self.is_pressed = True
         self.set_image(self.button_down_image)
         game.cursor_down(type(self))
+
+class PoseTutorial(AnimatedActor):
+    def __init__(self, position, pose='a', mode='pingpong', delay=0.5):
+        super(PoseTutorial, self).__init__(position, mode, delay)
+        
+        self.set_animation(game.get_animation('pose_%s'%pose),
+                           (256, 256), 15)
