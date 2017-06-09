@@ -31,7 +31,7 @@ def init(width, height):
     global running, screen_size, global_states, global_state, screen, clock, update, draw, key_down, cursor_down, cursor_up, global_state_changed, game_quit, cursor_position
     
     running = True
-    screen_size = (width, height)
+    screen_size = np.array((width, height))
     
     global_states = {}
     global_state = 'No state selected'

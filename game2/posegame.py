@@ -7,7 +7,7 @@ Created on Sat Jun  3 18:43:01 2017
 """
 
 import game_manager as game
-import detector
+import detect
 from text import Line
 from actor import AnimatedActor
 from interface import Cursor, Button, CancelButton, HandScreen
@@ -116,8 +116,8 @@ def main():
     
     game.update.subscribe(update)
     game.draw.subscribe(draw)
-    
-    detector.init()
+     
+    detect.init()
     
     game.start()
     

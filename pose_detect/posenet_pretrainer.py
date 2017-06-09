@@ -103,8 +103,7 @@ def train():
               PoolAE(40, 80, 5),
               PoolAE(80, 160, 3),
               AE(160, 256, 1),
-              AE(256, 256, 1),
-              AE(256, 27, 1)]
+              AE(256, 256, 1)]
     
     voc_data = np.load('data/pretrain_data.npy')
     pose_data = np.load('data/pose_data.npy')
@@ -115,8 +114,8 @@ def train():
     np.random.shuffle(data)
     
     data_cv = data[-10:]
-    #data = data[:30000]     # posenet_00
-    data = data[10000:-10] # posenet_01
+    data = data[:30000]     # posenet_00
+    #data = data[10000:-10] # posenet_01
     
     print(data.shape)
     
@@ -175,6 +174,6 @@ def train():
     posenet = PoseNet(deep_net)
     #print(posenet)
     
-    torch.save(posenet, 'models/posenet_01.model')
+    torch.save(posenet, 'models/posenet_00.model')
 
 train()

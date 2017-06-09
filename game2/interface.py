@@ -12,7 +12,7 @@ import numpy as np
 from actor import Actor, AnimatedActor
 from text import Line
 import game_manager as game
-import detector
+import detect
 import util
 from event import Event
 
@@ -44,7 +44,7 @@ class Cursor(Actor):
         if self.is_down:
             self.load_icon.update(delta)
         
-        target = detector.get_current_position()
+        target = detect.detector.get_current_position()
         force = 10 * util.normalize(target - self.position)
         
         distance_modifier = np.min([100, util.distance(self.position, target)]) / 100
@@ -181,7 +181,7 @@ class HandScreen(Button):
             self.unpress()
             
         if self.is_pressed:
-            self.label_text.set_text(detector.get_current_pose())
+            self.label_text.set_text(detect.detector.get_current_pose())
             self.label_text.update(delta)
     
     def draw(self, surface):
@@ -193,7 +193,8 @@ class HandScreen(Button):
         self.surface.fill(pg.Color(0,0,0,0))
         
         if self.is_pressed:
-            pg.surfarray.blit_array(self.hand_surface, detector.get_hand_frame((256, 256)))
+            frame = detect.detector.get_fixed_frame((256,256), self.position[::-1], (256, 256))
+            pg.surfarray.blit_array(self.hand_surface, frame)
             self.surface.blit(self.hand_surface, self.hand_rect)
         
         self.surface.blit(self.image, self.image_rect)

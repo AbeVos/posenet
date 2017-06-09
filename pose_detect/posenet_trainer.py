@@ -28,7 +28,7 @@ plot = 1
 def accuracy(data, label, net):
     X = data.transpose(0,3,1,2)
     X = Variable(torch.from_numpy(X).type(dtype), requires_grad=False)
-    y, _ = net(X)
+    y = net(X)
     y = np.exp(y.data.cpu().numpy())
     predictions = np.argmax(y, 1)
     
@@ -69,25 +69,27 @@ def accuracy_double(data, label, net1, net2):
 
 def train(net, data, label, data_cv, label_cv, lr=3e-5, epochs=30):
     global plot 
-    optimizer = torch.optim.RMSprop(net.parameters(), lr=lr, weight_decay=0.1)
+    optimizer = torch.optim.RMSprop(net.parameters(), lr=lr, weight_decay=0.001)
     
     criterion = nn.NLLLoss()
     
     training_loss = []
     cv_loss = []
     
+    batch_size = 50
+    
     for epoch in range(epochs):
         total_loss = 0
         
         net.train()
         
-        for i in range(len(data)):
-            X = np.expand_dims(data[i], 0).transpose(0,3,1,2)
+        for i in range(0,len(data), batch_size):
+            X = data[i:i+batch_size].transpose(0,3,1,2)
             X = Variable(torch.from_numpy(X).type(dtype), requires_grad=False)
             
-            t = Variable(torch.from_numpy(np.expand_dims(label[i], 0)).cuda(), requires_grad=False)
+            t = Variable(torch.from_numpy(label[i:i+batch_size]).cuda(), requires_grad=False)
             
-            y, _ = net(X)
+            y = net(X)
             
             loss = criterion(y, t)
             loss.backward()
@@ -97,7 +99,7 @@ def train(net, data, label, data_cv, label_cv, lr=3e-5, epochs=30):
             
             total_loss += loss.data[0]
         
-        loss = total_loss / len(data)
+        loss = total_loss / len(list(range(0,len(data), batch_size)))
         training_loss.append(loss)
         
         net.eval()
@@ -107,7 +109,7 @@ def train(net, data, label, data_cv, label_cv, lr=3e-5, epochs=30):
         
         t = Variable(torch.from_numpy(label_cv).cuda(), requires_grad=False)
             
-        y, _ = net(X)
+        y = net(X)
         
         loss = criterion(y, t)
         
@@ -138,11 +140,12 @@ print("Training samples: %i, validation samples: %i"%(len(data), len(data_cv)))
 net1 = torch.load('models/posenet_00.model')
 net2 = torch.load('models/posenet_01.model')
 net = posenet.PoseNetMixture(net1, net2)
+net.cuda()
 
 predictions = accuracy(data_cv, label_cv, net1)
 
-train(net, data, label, data_cv, label_cv, epochs=20, lr=3e-5)
-train(net, data, label, data_cv, label_cv, epochs=5, lr=3e-6)
+train(net, data, label, data_cv, label_cv, epochs=80, lr=1e-3)
+train(net, data, label, data_cv, label_cv, epochs=20, lr=1e-4)
 
 #train(net1, data, label, data_cv, label_cv, epochs=20)
 #train(net1, data, label, data_cv, label_cv, epochs=10, lr=1e-6)
