@@ -100,6 +100,7 @@ class Button(Actor):
         self.set_image(self.button_up_image)
         
         self.is_pressed = False
+        self.is_key_down = False
         self.pressed_time = 0.0
         self.wait_time = 1.2
         
@@ -126,7 +127,7 @@ class Button(Actor):
                 self.pressed_time = 0
     
     def key_down(self, key):
-        self.button_pressed()
+        pass
     
     def cursor_over(self):
         return util.distance(game.get_cursor_position(), self.position) < self.image.get_width() / 2
@@ -223,10 +224,70 @@ class HandScreen(Button):
         self.is_pressed = True
         self.set_image(self.button_down_image)
         game.cursor_down(type(self))
+        
+    def get_pose(self):
+        if self.is_pressed:
+            return detect.detector.get_current_pose()
+        else:
+            return None
 
 class PoseTutorial(AnimatedActor):
-    def __init__(self, position, pose='a', mode='pingpong', delay=0.5):
+    def __init__(self, position, activator, pose='a', mode='pingpong', delay=0.5):
         super(PoseTutorial, self).__init__(position, mode, delay)
+        
+        self.activator = activator
+        
+        self.pose = pose
         
         self.set_animation(game.get_animation('pose_%s'%pose),
                            (256, 256), 15)
+        
+        self.load_icon = AnimatedActor((64,64), mode='custom')
+        self.load_icon.set_animation(game.get_animation('load'), (64,64), 20)
+        self.load_icon_rect = self.load_icon.surface.get_rect()
+        
+        self.progress_time = 0.0
+        self.is_complete = False
+        
+    def update(self, delta):
+        super(PoseTutorial, self).update(delta)
+        
+        if not self.is_complete:
+            if self.activator() == self.pose:
+                if self.progress_time < 1:
+                    self.progress_time += delta / 2
+                else:
+                    self.is_complete = True
+                    self.progress_time = 0
+                    
+                    self.set_animation(game.get_animation('pose_complete'),
+                                       (256, 256), 15)
+                    self.mode = 'one_shot'
+            else:
+                if self.progress_time > 0:
+                    self.progress_time -= delta / 2
+            
+            self.load_icon.frame_time = self.progress_time
+            self.load_icon.update(delta)
+        else:
+            self.progress_time += delta
+            
+            if self.progress_time > 2:
+                self.is_active = False
+        
+        
+    def draw(self, surface):
+        if not self.is_active: return
+        
+        self.rect.center = self.position
+        
+        self.surface.fill(pg.Color(0,0,0,0))
+        self.surface.blit(self.image, self.image_rect)
+        
+        for child in self.children:
+            child.draw(surface)
+            
+        if not self.is_complete:
+            self.load_icon.draw(self.surface)
+        
+        surface.blit(self.surface, self.rect)

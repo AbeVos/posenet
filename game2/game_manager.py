@@ -93,13 +93,14 @@ def load_resources():
     global fonts, images, animations
     
     fonts = {
-        'title': pg.font.Font('resources/fonts/FreeSans.ttf', 64),
+        'title': pg.font.Font('resources/fonts/AmaticSC-Bold.ttf', 64),
         'screen_large': pg.font.Font('resources/fonts/Renegade Master.ttf', 64),
         'screen_small': pg.font.Font('resources/fonts/Renegade Master.ttf', 48)
         }
 
     images = {
         'block_blue': pg.image.load('resources/images/block_blue.png'),
+        'block_red': pg.image.load('resources/images/block_red.png'),
         'cursor_block': pg.image.load('resources/images/cursor_block.png'),
         'button_down': pg.image.load('resources/images/button_down.png'),
         'button_up': pg.image.load('resources/images/button_up.png'),
@@ -110,6 +111,9 @@ def load_resources():
         'bg_yellow': pg.image.load('resources/images/bg_yellow.png'),
         'screen_active': pg.image.load('resources/images/screen_active.png'),
         'screen_empty': pg.image.load('resources/images/screen_empty.png'),
+        'icon_0': pg.image.load('resources/images/icon_0.png'),
+        'icon_1': pg.image.load('resources/images/icon_1.png'),
+        'icon_2': pg.image.load('resources/images/icon_2.png'),
         'empty': pg.image.load('resources/images/empty.png')
         }
     
@@ -119,6 +123,7 @@ def load_resources():
         'pose_c': [pg.image.load('resources/images/animation/%.4i.png'%(i+1)) for i in range(30,45)],
         'pose_d': [pg.image.load('resources/images/animation/%.4i.png'%(i+1)) for i in range(45,60)],
         'pose_e': [pg.image.load('resources/images/animation/%.4i.png'%(i+1)) for i in range(60,75)],
+        'pose_complete': [pg.image.load('resources/images/animation/complete%.4i.png'%(i+1)) for i in range(15)],
         'load': [pg.image.load('resources/images/animation/load%.4i.png'%(i+1)) for i in range(20)]
         }
 

@@ -81,6 +81,7 @@ class AnimatedActor(Actor):
                 
                 self.set_image(self.frames[self.current_frame])
             else:
+                self.frame_time = 1
                 self.delay_time += delta
                 
                 if self.delay_time >= self.delay:
@@ -99,6 +100,7 @@ class AnimatedActor(Actor):
                 else:
                     self.set_image(self.frames[self.n_frames - self.current_frame - 1])
             else:
+                self.frame_time = 1
                 self.delay_time += delta
                 
                 if self.delay_time >= self.delay:
@@ -115,6 +117,19 @@ class AnimatedActor(Actor):
                     self.current_frame = self.n_frames - 1
                 
                 self.set_image(self.frames[self.current_frame])
+            else:
+                self.frame_time = 1
+                
+        elif self.mode is 'custom':
+            if self.frame_time <= 1:
+                self.current_frame = int(self.frame_time * float(self.n_frames - 1))
+                
+                if self.current_frame >= self.n_frames:
+                    self.current_frame = self.n_frames - 1
+                
+                self.set_image(self.frames[self.current_frame])
+            else:
+                self.frame_time = 1
         
     def set_animation(self, frames, frame_size, n_frames, animation_length=1):
         self.frames = frames

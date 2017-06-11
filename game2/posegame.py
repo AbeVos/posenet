@@ -9,8 +9,12 @@ Created on Sat Jun  3 18:43:01 2017
 import game_manager as game
 import detect
 from text import Line
-from actor import AnimatedActor
 from interface import Cursor, Button, CancelButton, HandScreen, PoseTutorial
+from game_objects import BlockManager
+
+import random
+
+available_letters = ['a','b','c','d', 'e']
 
 class MainMenu(game.State):
     def __init__(self):
@@ -55,7 +59,7 @@ class Tutorial(game.State):
         
         self.hand_screen = HandScreen((3 * game.screen_size[0] / 4, game.screen_size[1] / 2))
         
-        self.pose_tutorial = PoseTutorial((game.screen_size[0] / 4, game.screen_size[1] / 2), 'a')
+        self.set_letter()
         
         game.global_state_changed.subscribe(self.global_state_changed)
     
@@ -65,6 +69,9 @@ class Tutorial(game.State):
         self.return_button.update(delta)
         self.hand_screen.update(delta)
         self.pose_tutorial.update(delta)
+        
+        if not self.pose_tutorial.is_active:
+            game.set_global_state('game')
     
     def draw(self, surface):
         self.title.draw(surface)
@@ -75,21 +82,45 @@ class Tutorial(game.State):
         
     def return_button_pressed(self):
         game.set_global_state('main_menu')
-        
+    
     def global_state_changed(self, previous_state, new_state):
         if new_state is 'tutorial':
             self.cursor.set_position((0,0))
             self.cursor.cursor_up()
+            
+            self.set_letter()
+    
+    def set_letter(self):
+        self.letter = random.sample(available_letters, 1)[0]
+        
+        self.title.set_text('De letter %s'%self.letter.upper())
+        
+        self.pose_tutorial = PoseTutorial((game.screen_size[0] / 4, game.screen_size[1] / 2),
+                                          self.hand_screen.get_pose, self.letter)
+
+class Game(game.State):
+    def __init__(self):
+        super(Game, self).__init__()
+        
+        self.block_manager = BlockManager(game.screen_size / 2)
+
+    def update(self, delta):
+        self.block_manager.update(delta)
+        
+    def draw(self, surface):
+        self.block_manager.draw(surface)
 
 def main():
     game.init(1280, 960)
     
     global_states = {
             'main_menu': MainMenu(),
-            'tutorial': Tutorial()
+            'tutorial': Tutorial(),
+            'game': Game()
             }
     
-    game.set_global_states(global_states, 'tutorial')
+    ## Set initial state
+    game.set_global_states(global_states, 'game')
     
     game.update.subscribe(update)
     game.draw.subscribe(draw)
