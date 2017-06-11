@@ -18,15 +18,17 @@ class BlockManager(Actor):
     def __init__(self, position):
         super(BlockManager, self).__init__(position)
         
-        self.level = [0,1,2,0,1,2,0,1,2,0,1,2]
+        self.level_width = 6
+        self.set_surface(self.level_width * 128, 320)
         
-        self.set_surface(5 * 128, 320)
-        self.blocks = [Block((index * 128 + 64, 256), mode=mode) for index, mode in enumerate(self.level)]
+        self.load_level()
         
         self.cursor = Cursor((self.surface.get_width() / 2, 128))
         
         self.state = 'input'
         self.state_time = 0
+        
+        self.is_finished = False
         
         game.key_down.subscribe(self.key_down)
     
@@ -68,7 +70,7 @@ class BlockManager(Actor):
     
     def set_block_targets(self):
         for index, block in enumerate(self.blocks):
-            block.set_target((index * 128 + 64, 64))
+            block.set_target((index * 128 + 64, 256))
     
     def delete_block(self, index):
         if index < len(self.blocks):
@@ -85,6 +87,15 @@ class BlockManager(Actor):
             block.set_state(new_state)
         
         self.state_time = 0
+        
+    def reset(self):
+        self.is_finished = False
+        self.load_level()
+        self.set_state('input')
+        
+    def load_level(self):
+        self.level = [0,1,2,0,1,2,0,1,2,0,1,2]
+        self.blocks = [Block((index * 128 + 64, 256), mode=mode) for index, mode in enumerate(self.level)]
 
 class Cursor(Actor):
     def __init__(self, position):

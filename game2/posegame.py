@@ -103,12 +103,21 @@ class Game(game.State):
         super(Game, self).__init__()
         
         self.block_manager = BlockManager(game.screen_size / 2)
+        
+        game.global_state_changed.subscribe(self.global_state_changed)
 
     def update(self, delta):
         self.block_manager.update(delta)
         
+        if self.block_manager.is_finished:
+            game.set_global_state('tutorial')
+        
     def draw(self, surface):
         self.block_manager.draw(surface)
+    
+    def global_state_changed(self, previous_state, new_state):
+        if new_state is 'game':
+            self.block_manager.reset()
 
 def main():
     game.init(1280, 960)
