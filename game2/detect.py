@@ -29,7 +29,7 @@ class Detector():
         
         self.net = posenet.load()
         
-        self.capture = cv.VideoCapture(0)
+        self.capture = cv.VideoCapture(1)
         self.capture.set(cv.CAP_PROP_FRAME_WIDTH, self.screen_size[0])
         self.capture.set(cv.CAP_PROP_FRAME_HEIGHT, self.screen_size[1])
     
@@ -115,7 +115,7 @@ class Detector():
             if len(self.classification_scores) > self.wma_n:
                 self.classification_scores.pop(0)
                 
-            if len(self.classification_scores) > 0:
+            if len(self.classification_scores) > 1:
                 weights = np.arange(len(self.classification_scores))
                 self.classification_moving_average = np.sum(weights[::-1].reshape(-1,1,1,1) * np.array(self.classification_scores), axis=0)
                 self.classification_moving_average = self.classification_moving_average / np.sum(weights)

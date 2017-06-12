@@ -14,8 +14,6 @@ from game_objects import BlockManager
 
 import random
 
-available_letters = ['a','b','c','d', 'e']
-
 class MainMenu(game.State):
     def __init__(self):
         super(MainMenu, self).__init__()
@@ -91,7 +89,7 @@ class Tutorial(game.State):
             self.set_letter()
     
     def set_letter(self):
-        self.letter = random.sample(available_letters, 1)[0]
+        self.letter = random.sample(game.get_property('available_letters'), 1)[0]
         
         self.title.set_text('De letter %s'%self.letter.upper())
         
@@ -122,6 +120,9 @@ class Game(game.State):
 def main():
     game.init(1280, 960)
     
+    available_letters = ['a','b','c','d', 'e']
+    game.set_property('available_letters', available_letters)
+    
     global_states = {
             'main_menu': MainMenu(),
             'tutorial': Tutorial(),
@@ -129,7 +130,7 @@ def main():
             }
     
     ## Set initial state
-    game.set_global_states(global_states, 'game')
+    game.set_global_states(global_states, 'main_menu')
     
     game.update.subscribe(update)
     game.draw.subscribe(draw)

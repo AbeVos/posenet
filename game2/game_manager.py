@@ -28,7 +28,7 @@ class State():
         pass
 
 def init(width, height):
-    global running, screen_size, global_states, global_state, screen, clock, update, draw, key_down, cursor_down, cursor_up, global_state_changed, game_quit, cursor_position
+    global running, screen_size, global_states, global_state, screen, clock, update, draw, key_down, cursor_down, cursor_up, global_state_changed, game_quit, cursor_position, properties
     
     running = True
     screen_size = np.array((width, height))
@@ -43,6 +43,8 @@ def init(width, height):
     pg.display.set_caption("Gebarentaal")
     
     load_resources()
+    
+    properties = {}
     
     cursor_position = np.array([0,0], dtype=float)
     
@@ -138,6 +140,19 @@ def get_image(image):
 def get_animation(animation):
     global animations
     return animations[animation]
+
+def set_property(key, value):
+    global properties
+    
+    if not key in properties:
+        properties[key] = value
+    else:
+        print("Properties already has key %s"%key)
+
+def get_property(key):
+    global properties
+    
+    return properties[key]
 
 def get_screen_size():
     global screen_size
