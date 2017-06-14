@@ -130,12 +130,12 @@ def main():
             }
     
     ## Set initial state
-    game.set_global_states(global_states, 'main_menu')
+    game.set_global_states(global_states, 'game')
     
     game.update.subscribe(update)
     game.draw.subscribe(draw)
      
-    detect.init()
+    #detect.init()
     
     game.start()
     

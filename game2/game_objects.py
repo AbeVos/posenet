@@ -33,6 +33,8 @@ class BlockManager(Actor):
         
         self.is_finished = False
         
+        self.delete_group = None
+        
         game.key_down.subscribe(self.key_down)
     
     def update(self, delta):
@@ -41,6 +43,10 @@ class BlockManager(Actor):
         if self.state == 'move':
             if self.state_time >= 1:
                 self.set_state('input')
+        elif self.state == 'remove':
+            if self.state_time >= 1:
+                self.delete_blocks(self.delete_group)
+                self.set_state('move')
         
         for block in self.blocks:
             block.update(delta)
@@ -71,42 +77,58 @@ class BlockManager(Actor):
         key = key - 48
         
         self.delete_block(key)
-        self.set_state('move')
+        #self.set_state('move')
     
     def activate_cursor(self, index):
+        '''Called when one of the cursors is activated, index holds the index
+        value of the activated cursor.'''
+        
         if not self.state == 'input': return
+        
+        print("Activate cursor")
         
         self.blocks[index + 4].increase_mode(1)
         
-        while True:
-            group = self.find_group()
+        self.delete_group = self.find_group()
+        
+        if not self.delete_group is None:
+            for index in self.delete_group:
+                self.blocks[index].set_state('remove')
             
-            if group:
-                for index in group:
-                    self.delete_block(index)
-            else:
-                break
-            
-        self.loop()
-        self.set_state('move')
+            self.set_state('remove')
+        else:
+            self.loop()
+            self.set_state('move')
     
     def find_group(self):
+        '''Finds a group of three or more neighbouring blocks with the same 
+        mode and returns their indices.'''
+        
         print("find_group")
         indices = []
         
-        for index, block in enumerate(self.blocks[1:9]):
+        '''for index, block in enumerate(self.blocks[1:7]):
+            print(index, len(self.blocks))
             
-            print(len(self.blocks),index+2)
+            ## Check whether direct neighbour block has same mode
+            ## Continue to next block
             if block.mode is self.blocks[index+2].mode:
                 indices.append(index+1)
-            elif len(indices) >= 3:
-                print(len(indices))
+            else:
+                continue
+            
+            for i, other in enumerate(self.blocks[index+2:9]):
+                if block.mode is other.mode:
+                    indices.append(i+index+2)
+            
+            print("Group of %i | %s"%(len(indices), indices))
+            
+            if len(indices) >= 3:
                 return indices
             else:
-                print(len(indices))
-                indices = []
+                indices = []'''
         
-        return None
+        return [1,2,3]
     
     def loop(self):
         print("loop")
@@ -130,17 +152,25 @@ class BlockManager(Actor):
         if index < len(self.blocks):
             self.blocks.pop(index)
             
+    def delete_blocks(self, indices):
+        for index in indices[::-1]:
+            self.blocks.pop(index)
+            
     def set_state(self, new_state):
         previous_state = self.state
         self.state = new_state
         
         if new_state == 'move':
             self.set_block_targets()
+            
+            for block in self.blocks:
+                block.set_state(new_state)
+                
         elif new_state == 'input':
             self.set_cursor_keys()
         
-        for block in self.blocks:
-            block.set_state(new_state)
+            for block in self.blocks:
+                block.set_state(new_state)
         
         self.state_time = 0
         
@@ -150,7 +180,7 @@ class BlockManager(Actor):
         self.set_state('input')
         
     def load_level(self):
-        self.level = [0,1,2,0,1,2,0,1,2,0,1,2]
+        self.level = [0,1,1,0,1,2,2,1,2,0,1,2]
         self.blocks = [Block((index * 128 - 64, 256), mode=mode) for index, mode in enumerate(self.level)]
 
 class Cursor(Actor):
@@ -168,6 +198,7 @@ class Cursor(Actor):
         self.text.set_color(pg.Color(62, 255, 4))
         
         self.state = 'input'
+        self.state_time = 0.0
         
         game.key_down.subscribe(self.key_down)
         
@@ -175,9 +206,8 @@ class Cursor(Actor):
         super(Cursor, self).update(delta)
             
         self.text.update(delta)
-        
-        if self.state == 'remove':
-            pass
+    
+        self.state_time += delta
     
     def draw(self, surface):
         if not self.is_active: return
@@ -230,11 +260,18 @@ class Block(Actor):
             
             if self.state_time >= 1:
                 self.set_state('wait')
+        elif self.state == 'remove':
+            self.position[1] += delta * 64
+            if self.state_time >= 1:
+                self.is_active = False
+            
+            self.state_time += delta
         
     def draw(self, surface):
         if not self.is_active: return
         
         self.rect.center = self.position
+        self.rect.centery = self.position[1] - 8 * np.sin(self.position[0] / 64) 
         
         self.surface.fill(pg.Color(0,0,0,0))
         
