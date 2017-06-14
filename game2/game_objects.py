@@ -40,13 +40,38 @@ class BlockManager(Actor):
     def update(self, delta):
         super(BlockManager, self).update(delta)
         
-        if self.state == 'move':
+        if self.state == 'input':
+            if len(self.blocks) <= 3:
+                game.set_global_state('tutorial')
+        
+        elif self.state == 'move':
             if self.state_time >= 1:
-                self.set_state('input')
+                
+                if self.delete_group is None:
+                    self.set_state('input')
+                else:
+                    self.set_state('find_group') 
+                
         elif self.state == 'remove':
             if self.state_time >= 1:
                 self.delete_blocks(self.delete_group)
                 self.set_state('move')
+        
+        elif self.state == 'find_group':
+            self.delete_group = self.find_group()
+        
+            if not self.delete_group is None:
+                for index in self.delete_group:
+                    self.blocks[index].set_state('remove')
+                
+                self.set_state('remove')
+            else:
+                self.loop()
+                self.set_state('move')
+                
+        elif self.state == 'change_mode':
+            if self.state_time > 0.5:
+                self.set_state('find_group')
         
         for block in self.blocks:
             block.update(delta)
@@ -89,16 +114,8 @@ class BlockManager(Actor):
         
         self.blocks[index + 4].increase_mode(1)
         
-        self.delete_group = self.find_group()
-        
-        if not self.delete_group is None:
-            for index in self.delete_group:
-                self.blocks[index].set_state('remove')
-            
-            self.set_state('remove')
-        else:
-            self.loop()
-            self.set_state('move')
+        self.cursors[index].set_state('change_mode')
+        self.set_state('change_mode')
     
     def find_group(self):
         '''Finds a group of three or more neighbouring blocks with the same 
@@ -107,11 +124,11 @@ class BlockManager(Actor):
         print("find_group")
         indices = []
         
-        '''for index, block in enumerate(self.blocks[1:7]):
-            print(index, len(self.blocks))
-            
+        for index, block in enumerate(self.blocks[1:7]):
             ## Check whether direct neighbour block has same mode
             ## Continue to next block
+            if index+2 >= len(self.blocks): continue
+            
             if block.mode is self.blocks[index+2].mode:
                 indices.append(index+1)
             else:
@@ -120,15 +137,15 @@ class BlockManager(Actor):
             for i, other in enumerate(self.blocks[index+2:9]):
                 if block.mode is other.mode:
                     indices.append(i+index+2)
-            
-            print("Group of %i | %s"%(len(indices), indices))
-            
+                else:
+                    break
+        
             if len(indices) >= 3:
                 return indices
             else:
-                indices = []'''
+                indices = []
         
-        return [1,2,3]
+        return None
     
     def loop(self):
         print("loop")
@@ -162,13 +179,11 @@ class BlockManager(Actor):
         
         if new_state == 'move':
             self.set_block_targets()
-            
-            for block in self.blocks:
-                block.set_state(new_state)
                 
         elif new_state == 'input':
             self.set_cursor_keys()
         
+        if not new_state == 'remove':            
             for block in self.blocks:
                 block.set_state(new_state)
         
@@ -197,6 +212,8 @@ class Cursor(Actor):
         self.text = Line((64, 64), self.key, game.get_font('screen_large'))
         self.text.set_color(pg.Color(62, 255, 4))
         
+        self.start_pos = np.array(position)
+        
         self.state = 'input'
         self.state_time = 0.0
         
@@ -205,6 +222,13 @@ class Cursor(Actor):
     def update(self, delta):
         super(Cursor, self).update(delta)
             
+        if self.state == 'change_mode':
+            self.position[1] = self.start_pos[1] + 16 * np.sin(2 * np.pi * self.state_time)
+            
+            if self.state_time >= 0.5:
+                self.position = self.start_pos.copy()
+                self.set_state('input')
+        
         self.text.update(delta)
     
         self.state_time += delta
@@ -231,6 +255,12 @@ class Cursor(Actor):
     def set_key(self, key):
         self.key = key
         self.text.set_text(str(key))
+        
+    def set_state(self, new_state):
+        previous_state = self.state
+        self.state = new_state
+            
+        self.state_time = 0
 
 class Block(Actor):
     def __init__(self, position, mode=1):

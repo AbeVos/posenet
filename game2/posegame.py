@@ -120,7 +120,7 @@ class Game(game.State):
 def main():
     game.init(1280, 960)
     
-    available_letters = ['a','b','c','d', 'e']
+    available_letters = ['a','b','c','d','e']
     game.set_property('available_letters', available_letters)
     
     global_states = {
