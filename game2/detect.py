@@ -9,15 +9,22 @@ Created on Mon May  8 15:27:04 2017
 import cv2 as cv
 import numpy as np
 from scipy.misc import imresize
+from math import ceil
 
 import game_manager as game
-from mlutil.image import pyramid
 import posenet
 
 class_labels = ('A','B','C','D','E','F','G',
                 'H','I','J','K','L','M','N',
                 'O','P','Q','R','S','T','U',
                 'V','W','X','Y','Z','?')
+
+def pyramid(image, iterations=3, interp='bilinear', ratio=2):
+    yield image
+    
+    for i in range(iterations-1):
+        image = imresize(image, (ceil(image.shape[0] // ratio), ceil(image.shape[1] // ratio)), interp=interp)
+        yield image
 
 class Detector():
     def __init__(self):

@@ -40,7 +40,7 @@ def init(width, height):
     
     screen = pg.display.set_mode(screen_size)
     clock = pg.time.Clock()
-    pg.display.set_caption("Gebarentaal")
+    pg.display.set_caption("PoseNet")
     
     load_resources()
     
