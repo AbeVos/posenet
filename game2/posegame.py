@@ -51,10 +51,6 @@ class Tutorial(game.State):
         self.title = Line((game.screen_size[0] / 2, 150), "Tutorial", game.get_font('title'))
         
         self.cursor = Cursor()
-        self.return_button = CancelButton(
-                (100, game.screen_size[1] - 100),
-                 self.return_button_pressed)
-        
         self.hand_screen = HandScreen((3 * game.screen_size[0] / 4, game.screen_size[1] / 2))
         
         self.set_letter()
@@ -64,7 +60,6 @@ class Tutorial(game.State):
     def update(self, delta):
         self.title.update(delta)
         self.cursor.update(delta)
-        self.return_button.update(delta)
         self.hand_screen.update(delta)
         self.pose_tutorial.update(delta)
         
@@ -73,13 +68,9 @@ class Tutorial(game.State):
     
     def draw(self, surface):
         self.title.draw(surface)
-        self.return_button.draw(surface)
         self.hand_screen.draw(surface)
         self.pose_tutorial.draw(surface)
         self.cursor.draw(surface)
-        
-    def return_button_pressed(self):
-        game.set_global_state('main_menu')
     
     def global_state_changed(self, previous_state, new_state):
         if new_state is 'tutorial':
@@ -100,18 +91,38 @@ class Game(game.State):
     def __init__(self):
         super(Game, self).__init__()
         
-        self.block_manager = BlockManager(game.screen_size / 2)
+        self.cursor = Cursor()
+        
+        self.cursor = Cursor()
+        self.return_button = CancelButton(
+                (128, game.screen_size[1] - 128),
+                 self.return_button_pressed)
+        
+        self.hand_screen = HandScreen((game.screen_size[0] - 256,
+                                       256))
+        
+        self.block_manager = BlockManager((game.screen_size[0] / 2, 4 *  game.screen_size[1] / 7), self.hand_screen)
         
         game.global_state_changed.subscribe(self.global_state_changed)
 
     def update(self, delta):
+        self.cursor.update(delta)
+        self.return_button.update(delta)
+        self.hand_screen.update(delta)
+        
         self.block_manager.update(delta)
         
         if self.block_manager.is_finished:
             game.set_global_state('tutorial')
         
     def draw(self, surface):
+        self.return_button.draw(surface)
         self.block_manager.draw(surface)
+        self.hand_screen.draw(surface)
+        self.cursor.draw(surface)
+    
+    def return_button_pressed(self):
+        game.set_global_state('tutorial')
     
     def global_state_changed(self, previous_state, new_state):
         if new_state is 'game':
@@ -135,7 +146,7 @@ def main():
     game.update.subscribe(update)
     game.draw.subscribe(draw)
      
-    #detect.init()
+    detect.init()
     
     game.start()
     

@@ -29,7 +29,7 @@ class Detector():
         
         self.net = posenet.load()
         
-        self.capture = cv.VideoCapture(1)
+        self.capture = cv.VideoCapture(0)
         self.capture.set(cv.CAP_PROP_FRAME_WIDTH, self.screen_size[0])
         self.capture.set(cv.CAP_PROP_FRAME_HEIGHT, self.screen_size[1])
     
@@ -122,7 +122,7 @@ class Detector():
             
             self.fixed_frame = None
         
-        cv.imshow("Frame", np.flip(self.frame, 2) / 255)
+        cv.imshow("Frame", prediction * np.flip(self.frame, 2) / 255)
         #cv.imshow("Prediction", prediction)
         #cv.imshow("Hand", np.flip(self.hand_frame, 2))
         
@@ -147,7 +147,7 @@ class Detector():
     def get_fixed_frame(self, frame_size, frame_position, output_size):
         frame_position = np.array(frame_position) / game.get_screen_size() * self.screen_size
         frame_position -= np.array(frame_size) / 2
-        x,y = frame_position.astype(int)
+        x,y = np.clip(frame_position.astype(int), (0,0), self.screen_size)
         w,h = frame_size
 
         self.fixed_frame = self.frame[x:x+w,y:y+h]

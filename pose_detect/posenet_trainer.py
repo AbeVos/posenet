@@ -127,8 +127,12 @@ dataset = preprocess.concatenate(dataset, preprocess.mirror(dataset))
 dataset = preprocess.shuffle(dataset)
 
 data, label = dataset
+
+#label[(label >= 5) & (label < 26)] = 5
+#label[(label == 26)] = 5
+
 data /= 255
-m = 8000
+m = 8322
 print("%i samples in total."%len(data))
 data_cv = data[m:]
 label_cv = label[m:]
@@ -176,4 +180,4 @@ for i in range(40):
     plt.axis('off')
 '''
 
-posenet.save(net)
+#posenet.save(net)

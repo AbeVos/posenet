@@ -11,12 +11,12 @@ import numpy as np
 import random
 
 import game_manager as game
-from actor import Actor
+from actor import Actor, AnimatedActor
 from text import Line
 import util
 
 class BlockManager(Actor):
-    def __init__(self, position):
+    def __init__(self, position, hand_screen):
         super(BlockManager, self).__init__(position)
         
         self.level_width = 8
@@ -25,7 +25,7 @@ class BlockManager(Actor):
         self.load_level()
         
         #self.cursor = Cursor((self.surface.get_width() / 2, 128))
-        self.cursors = [Cursor((self.level_width / 2 * 128 - 64 + 128 * i, 128), self.activate_cursor, i) for i in range(2)]
+        self.cursors = [Cursor((self.level_width / 2 * 128 - 64 + 128 * i, 128), self.activate_cursor, hand_screen.get_pose, i) for i in range(2)]
         self.set_cursor_keys()
         
         self.state = 'input'
@@ -121,7 +121,6 @@ class BlockManager(Actor):
         '''Finds a group of three or more neighbouring blocks with the same 
         mode and returns their indices.'''
         
-        print("find_group")
         indices = []
         
         for index, block in enumerate(self.blocks[1:7]):
@@ -148,7 +147,6 @@ class BlockManager(Actor):
         return None
     
     def loop(self):
-        print("loop")
         block = self.blocks[0]
         block.set_position((8 * 128 - 64, 256))
         self.blocks.pop(0)
@@ -182,6 +180,9 @@ class BlockManager(Actor):
                 
         elif new_state == 'input':
             self.set_cursor_keys()
+            
+            for cursor in self.cursors:
+                cursor.set_state('input')
         
         if not new_state == 'remove':            
             for block in self.blocks:
@@ -200,16 +201,17 @@ class BlockManager(Actor):
 
 class Cursor(Actor):
     """Block that takes input from the detector and passes this to the BlockManager"""
-    def __init__(self, position, listener, index=0):
+    def __init__(self, position, listener, activator, index=0):
         super(Cursor, self).__init__(position)
         
         self.listener = listener
+        self.activator = activator
         self.index = index
         
         self.key = None
         self.set_image(game.get_image('cursor_block'))
         
-        self.text = Line((64, 64), self.key, game.get_font('screen_large'))
+        self.text = Line((64, 72), self.key, game.get_font('screen_large'))
         self.text.set_color(pg.Color(62, 255, 4))
         
         self.start_pos = np.array(position)
@@ -217,17 +219,40 @@ class Cursor(Actor):
         self.state = 'input'
         self.state_time = 0.0
         
+        self.progress_time = 0
+        
+        self.load_icon = AnimatedActor((64,64), mode='custom')
+        self.load_icon.set_animation(game.get_animation('load'), (64,64), 20)
+        self.load_icon_rect = self.load_icon.surface.get_rect()
+        
         game.key_down.subscribe(self.key_down)
         
     def update(self, delta):
         super(Cursor, self).update(delta)
             
-        if self.state == 'change_mode':
+        if self.state == 'input':
+            if self.activator() == self.key:
+                if self.progress_time < 1:
+                    self.progress_time += delta
+                else:
+                    self.progress_time = 0
+                    self.listener(self.index)
+            else:
+                if self.progress_time > 0:
+                    self.progress_time -= delta
+            
+            if self.progress_time < 0: self.progress_time = 0
+            elif self.progress_time > 1: self.progress_time = 1
+            
+        elif self.state == 'change_mode':
             self.position[1] = self.start_pos[1] + 16 * np.sin(2 * np.pi * self.state_time)
             
             if self.state_time >= 0.5:
                 self.position = self.start_pos.copy()
-                self.set_state('input')
+                self.set_state('wait')
+        
+        self.load_icon.frame_time = self.progress_time
+        self.load_icon.update(delta)
         
         self.text.update(delta)
     
@@ -243,6 +268,8 @@ class Cursor(Actor):
         self.surface.blit(self.image, self.image_rect)
         
         self.text.draw(self.surface)
+        
+        self.load_icon.draw(self.surface)
         
         surface.blit(self.surface, self.rect)
     
